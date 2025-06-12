@@ -33,6 +33,8 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     list_profilers (bool): True if the profilers should be listed.
     show_info (bool): True if information about hashers, parsers, plugins,
         etc. should be shown.
+    json_stdout (bool): True if events should be output as JSON to stdout
+        instead of being stored in a .plaso file.
   """
 
   NAME = 'log2timeline'
@@ -59,6 +61,9 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
       'command line (including data from particular VSS stores).',
       '    log2timeline.py --vss_stores 1,2 /cases/plaso_vss.plaso image.E01',
       '',
+      'Output events as JSON to stdout instead of creating a .plaso file:',
+      '    log2timeline.py --json-stdout /path/to/source',
+      '',
       'And that is how you build a timeline using log2timeline...',
       '']))
 
@@ -81,6 +86,7 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     self.list_parsers_and_plugins = False
     self.list_profilers = False
     self.show_info = False
+    self.json_stdout = False
 
   def _GetPluginData(self):
     """Retrieves the version and various plugin information.
@@ -176,6 +182,12 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
         dest='dependencies_check', action='store_false', default=True,
         help='Disable the dependencies check.')
 
+    info_group.add_argument(
+        '--json-stdout', dest='json_stdout', action='store_true', 
+        default=False, help=(
+            'Output events as JSON to stdout instead of creating a .plaso file. '
+            'When this option is used, the storage_file argument is ignored.'))
+
     self.AddLogFileOptions(info_group)
 
     helpers_manager.ArgumentHelperManager.AddCommandLineArguments(
@@ -249,7 +261,7 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     return True
 
   def ParseOptions(self, options):
-    """Parses the options.
+    """Parses the command line options.
 
     Args:
       options (argparse.Namespace): command line arguments.
@@ -257,6 +269,9 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     Raises:
       BadConfigOption: if the options are invalid.
     """
+    # Parse the JSON stdout option first
+    self.json_stdout = getattr(options, 'json_stdout', False)
+
     # The extraction options are dependent on the data location.
     helpers_manager.ArgumentHelperManager.ParseOptions(
         options, self, names=['data_location'])
@@ -304,19 +319,24 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     self._ParsePerformanceOptions(options)
     self._ParseProcessingOptions(options)
 
-    self._storage_file_path = self.ParseStringOption(options, 'storage_file')
-    if not self._storage_file_path:
-      self._storage_file_path = self._GenerateStorageFileName()
+    # Handle storage file for non-JSON stdout mode
+    if not self.json_stdout:
+      self._storage_file_path = self.ParseStringOption(options, 'storage_file')
+      if not self._storage_file_path:
+        self._storage_file_path = self._GenerateStorageFileName()
 
-    if not self._storage_file_path:
-      raise errors.BadConfigOption('Missing storage file option.')
+      if not self._storage_file_path:
+        raise errors.BadConfigOption('Missing storage file option.')
 
-    serializer_format = getattr(
-        options, 'serializer_format', definitions.SERIALIZER_FORMAT_JSON)
-    if serializer_format not in definitions.SERIALIZER_FORMATS:
-      raise errors.BadConfigOption(
-          f'Unsupported storage serializer format: {serializer_format:s}')
-    self._storage_serializer_format = serializer_format
+      serializer_format = getattr(
+          options, 'serializer_format', definitions.SERIALIZER_FORMAT_JSON)
+      if serializer_format not in definitions.SERIALIZER_FORMATS:
+        raise errors.BadConfigOption(
+            f'Unsupported storage serializer format: {serializer_format:s}')
+      self._storage_serializer_format = serializer_format
+    else:
+      # For JSON stdout mode, we don't need a storage file
+      self._storage_file_path = None
 
     helpers_manager.ArgumentHelperManager.ParseOptions(
         options, self, names=['status_view'])

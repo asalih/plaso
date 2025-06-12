@@ -37,6 +37,8 @@ from plaso.multi_process import extraction_engine as multi_extraction_engine
 from plaso.parsers import manager as parsers_manager
 from plaso.parsers import presets as parsers_presets
 from plaso.storage import factory as storage_factory
+from plaso.storage import writer as storage_writer
+from plaso.storage.json_streaming_writer import JSONStreamingStorageWriter
 
 
 class ExtractionTool(
@@ -272,7 +274,7 @@ class ExtractionTool(
             for preset_definition in preset_definitions])
 
         logger.debug((
-            f'Parser filter expression set to preset: '
+            f'Parser filter expression set to: '
             f'{self._parser_filter_expression:s}'))
 
     parser_filter_helper = parser_filter.ParserFilterExpressionHelper()
@@ -704,7 +706,11 @@ class ExtractionTool(
           file system.
       UserAbort: if the user initiated an abort.
     """
-    self._CheckStorageFile(self._storage_file_path, warn_about_existing=True)
+    # Check if JSON stdout mode is enabled
+    json_stdout_mode = getattr(self, 'json_stdout', False)
+    
+    if not json_stdout_mode:
+      self._CheckStorageFile(self._storage_file_path, warn_about_existing=True)
 
     try:
       self.ScanSource(self._source_path)
@@ -718,45 +724,68 @@ class ExtractionTool(
         self._file_system_path_specs = [archive_path_spec]
         self._source_type = definitions.SOURCE_TYPE_ARCHIVE
 
-    self._status_view.SetMode(self._status_view_mode)
-    self._status_view.SetStatusFile(self._status_view_file)
+    # Set status view mode - use linear mode for JSON stdout to prevent screen clearing
+    if json_stdout_mode:
+      # For JSON stdout mode, disable status updates completely for clean output
+      self._status_view.SetMode(status_view.StatusView.MODE_FILE)
+      # Set status file to /dev/null to suppress output
+      import os
+      if os.name == 'nt':  # Windows
+        self._status_view.SetStatusFile('NUL')
+      else:  # Unix/Linux/macOS
+        self._status_view.SetStatusFile('/dev/null')
+    else:
+      self._status_view.SetMode(self._status_view_mode)
+      self._status_view.SetStatusFile(self._status_view_file)
+      
     self._status_view.SetSourceInformation(
         self._source_path, self._source_type,
         artifact_filters=self._artifact_filters,
         filter_file=self._filter_file)
 
-    self._output_writer.Write('\n')
-    self._status_view.PrintExtractionStatusHeader(None)
-    self._output_writer.Write('Processing started.\n')
+    if not json_stdout_mode:
+      self._output_writer.Write('\n')
+      self._status_view.PrintExtractionStatusHeader(None)
+      self._output_writer.Write('Processing started.\n')
 
     # TODO: attach processing configuration to session?
     session = engine.BaseEngine.CreateSession()
 
-    storage_writer = storage_factory.StorageFactory.CreateStorageWriter(
-        self._storage_format)
-    if not storage_writer:
-      raise errors.BadConfigOption(
-          f'Unsupported storage format: {self._storage_format:s}')
+    if json_stdout_mode:
+      # Create a custom JSON streaming storage writer
+      storage_writer = JSONStreamingStorageWriter()
+      try:
+        storage_writer.Open()
+      except IOError as exception:
+        raise IOError(f'Unable to open storage with error: {exception!s}')
+    else:
+      storage_writer = storage_factory.StorageFactory.CreateStorageWriter(
+          self._storage_format)
+      if not storage_writer:
+        raise errors.BadConfigOption(
+            f'Unsupported storage format: {self._storage_format:s}')
 
-    try:
-      storage_writer.Open(path=self._storage_file_path)
-    except IOError as exception:
-      raise IOError(f'Unable to open storage with error: {exception!s}')
+      try:
+        storage_writer.Open(path=self._storage_file_path)
+      except IOError as exception:
+        raise IOError(f'Unable to open storage with error: {exception!s}')
 
     processing_status = None
     number_of_extraction_warnings = 0
 
     try:
-      stored_number_of_extraction_warnings = (
-          storage_writer.GetNumberOfAttributeContainers('extraction_warning'))
+      if not json_stdout_mode:
+        stored_number_of_extraction_warnings = (
+            storage_writer.GetNumberOfAttributeContainers('extraction_warning'))
 
       try:
         processing_status = self._ProcessSource(session, storage_writer)
 
       finally:
-        number_of_extraction_warnings = (
-            storage_writer.GetNumberOfAttributeContainers(
-                'extraction_warning') - stored_number_of_extraction_warnings)
+        if not json_stdout_mode:
+          number_of_extraction_warnings = (
+              storage_writer.GetNumberOfAttributeContainers(
+                  'extraction_warning') - stored_number_of_extraction_warnings)
 
     except IOError as exception:
       raise IOError(f'Unable to write to storage with error: {exception!s}')
@@ -764,8 +793,9 @@ class ExtractionTool(
     finally:
       storage_writer.Close()
 
-    self._status_view.PrintExtractionSummary(
-        processing_status, number_of_extraction_warnings)
+    if not json_stdout_mode:
+      self._status_view.PrintExtractionSummary(
+          processing_status, number_of_extraction_warnings)
 
   def ListArchiveTypes(self):
     """Lists information about supported archive types."""
@@ -833,3 +863,5 @@ class ExtractionTool(
     for name, description in sorted(presets_information):
       table_view.AddRow([name, description])
     table_view.Write(self._output_writer)
+
+
