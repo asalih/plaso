@@ -132,8 +132,19 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
           continue
 
         if attribute_name == 'date_time':
-          attribute_value = self._serializer.WriteSerializedDict(
-              attribute_value)
+          # Map to "datetime" field name for OpenSearch compatibility
+          attribute_name = 'datetime'
+          # Format as ISO string for OpenSearch compatibility
+          if hasattr(attribute_value, 'CopyToDateTimeString'):
+            try:
+              attribute_value = attribute_value.CopyToDateTimeString()
+            except AttributeError:
+              # Fallback to serialized dict if string conversion fails
+              attribute_value = self._serializer.WriteSerializedDict(
+                  attribute_value)
+          else:
+            attribute_value = self._serializer.WriteSerializedDict(
+                attribute_value)
 
         field_values[attribute_name] = attribute_value
 
@@ -147,10 +158,20 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
               event_tag)
           field_values[field_name] = field_value
 
-    # Add message field
-    field_values['message'] = self._field_formatting_helper.GetFormattedField(
-        self._output_mediator, 'message', event, event_data, event_data_stream,
-        event_tag)
+    # Add message field with custom logic to avoid DEFAULT FORMATTER warning
+    try:
+      message = self._field_formatting_helper.GetFormattedField(
+          self._output_mediator, 'message', event, event_data, event_data_stream,
+          event_tag)
+      
+      # If message contains the default formatter warning, create a cleaner message
+      if '<WARNING DEFAULT FORMATTER>' in message:
+        message = self._CreateCleanMessage(event_data)
+        
+      field_values['message'] = message
+    except Exception:
+      # Fallback to a simple message if formatting fails
+      field_values['message'] = self._CreateCleanMessage(event_data)
 
     if event_tag:
       event_tag_values = {
@@ -168,6 +189,49 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
       field_values['tag'] = event_tag_values
 
     return field_values
+
+  def _CreateCleanMessage(self, event_data):
+    """Creates a clean message without formatter warnings.
+
+    Args:
+      event_data (EventData): event data.
+
+    Returns:
+      str: clean message.
+    """
+    if not event_data:
+      return 'No event data available'
+
+    # Reserved attributes we want to skip
+    reserved_attributes = {
+        '_event_values_hash', '_parser_chain', 'data_type', 'date_time',
+        'path_spec', 'timestamp', 'timestamp_desc'
+    }
+
+    # Try to build a meaningful message from event data attributes
+    message_parts = []
+    
+    for attribute_name, attribute_value in event_data.GetAttributes():
+      # Skip reserved attributes and internal attributes
+      if (attribute_name in reserved_attributes or 
+          attribute_name.startswith('_') or
+          isinstance(attribute_value, interface.AttributeContainerIdentifier) or
+          isinstance(attribute_value, dfdatetime_interface.DateTimeValues)):
+        continue
+
+      # Skip list of datetime values
+      if (isinstance(attribute_value, list) and attribute_value and
+          isinstance(attribute_value[0], dfdatetime_interface.DateTimeValues)):
+        continue
+
+      message_parts.append('{0}: {1}'.format(attribute_name, attribute_value))
+
+    if message_parts:
+      return ' '.join(message_parts)
+    else:
+      # If no meaningful attributes found, show data type
+      data_type = getattr(event_data, 'data_type', 'unknown')
+      return 'Event of type: {0}'.format(data_type)
 
   def AddAttributeContainer(self, container):
     """Adds an attribute container.
