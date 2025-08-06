@@ -68,7 +68,9 @@ class BaseFirefoxCookiePlugin(
       dfdatetime.PosixTime: date and time value or None if not available.
     """
     timestamp = self._GetRowValue(query_hash, row, value_name)
-    if timestamp is None:
+    # Note that pysqlite3 can return an empty string for a NULL value.
+    # Also see: https://github.com/log2timeline/plaso/issues/4961
+    if timestamp is None or not isinstance(timestamp, int):
       return None
 
     return dfdatetime_posix_time.PosixTime(timestamp=timestamp)
@@ -88,7 +90,9 @@ class BaseFirefoxCookiePlugin(
           available.
     """
     timestamp = self._GetRowValue(query_hash, row, value_name)
-    if timestamp is None:
+    # Note that pysqlite3 can return an empty string for a NULL value.
+    # Also see: https://github.com/log2timeline/plaso/issues/4961
+    if timestamp is None or not isinstance(timestamp, int):
       return None
 
     return dfdatetime_posix_time.PosixTimeInMicroseconds(timestamp=timestamp)
@@ -154,7 +158,7 @@ class FirefoxCookie2Plugin(BaseFirefoxCookiePlugin):
   """SQLite parser plugin for Mozilla Firefox cookies schema 2 databases.
 
   Also see:
-    https://hg.mozilla.org/mozilla-central/file/349a2f003529/netwerk/cookie/nsCookie.h
+    https://hg-edge.mozilla.org/mozilla-central/file/349a2f003529/netwerk/cookie/nsCookie.h
   """
 
   NAME = 'firefox_2_cookies'
