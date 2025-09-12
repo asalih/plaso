@@ -298,6 +298,7 @@ class TaskMultiProcessEngine(engine.MultiProcessEngine):
     Raises:
       IOError: if the temporary path for the SQLite task storage already exists.
       OSError: if the temporary path for the SQLite task storage already exists.
+      ValueError: if the task storage format is not supported.
     """
     if task_storage_format == definitions.STORAGE_FORMAT_REDIS and redis_store:
       url = redis_store.RedisAttributeContainerStore.DEFAULT_REDIS_URL
@@ -308,7 +309,25 @@ class TaskMultiProcessEngine(engine.MultiProcessEngine):
       if self._task_storage_path:
         raise IOError('SQLite task storage path already exists.')
 
-      output_directory = os.path.dirname(self._storage_file_path)
+      # Handle case where storage_file_path is None (e.g., in JSON stdout mode)
+      if self._storage_file_path:
+        output_directory = os.path.dirname(self._storage_file_path)
+      else:
+        # Use system temp directory if no storage file path is set
+        output_directory = None
+      
+      self._task_storage_path = tempfile.mkdtemp(dir=output_directory)
+
+      self._merge_task_storage_path = os.path.join(
+          self._task_storage_path, 'merge')
+      os.mkdir(self._merge_task_storage_path)
+
+      self._processed_task_storage_path = os.path.join(
+          self._task_storage_path, 'processed')
+      os.mkdir(self._processed_task_storage_path)
+
+      self._processing_configuration.task_storage_path = self._task_storage_path
+      
       self._task_storage_path = tempfile.mkdtemp(dir=output_directory)
 
       self._merge_task_storage_path = os.path.join(
@@ -342,6 +361,32 @@ class TaskMultiProcessEngine(engine.MultiProcessEngine):
       self._redis_client = None
 
     elif task_storage_format == definitions.STORAGE_FORMAT_SQLITE:
+      if os.path.isdir(self._merge_task_storage_path):
+        if abort:
+          shutil.rmtree(self._merge_task_storage_path)
+        else:
+          os.rmdir(self._merge_task_storage_path)
+
+      if os.path.isdir(self._processed_task_storage_path):
+        if abort:
+          shutil.rmtree(self._processed_task_storage_path)
+        else:
+          os.rmdir(self._processed_task_storage_path)
+
+      if os.path.isdir(self._task_storage_path):
+        if abort:
+          shutil.rmtree(self._task_storage_path)
+        else:
+          os.rmdir(self._task_storage_path)
+
+      self._merge_task_storage_path = None
+      self._processed_task_storage_path = None
+      self._task_storage_path = None
+
+      self._processing_configuration.task_storage_path = None
+
+    elif task_storage_format == definitions.STORAGE_FORMAT_HTTP:
+      # HTTP task storage format uses SQLite fallback, so clean up like SQLite
       if os.path.isdir(self._merge_task_storage_path):
         if abort:
           shutil.rmtree(self._merge_task_storage_path)

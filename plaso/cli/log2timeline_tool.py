@@ -35,6 +35,8 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
         etc. should be shown.
     json_stdout (bool): True if events should be output as JSON to stdout
         instead of being stored in a .plaso file.
+    http_endpoint (str): HTTP endpoint URL to send events to, or None if not
+        using HTTP streaming.
   """
 
   NAME = 'log2timeline'
@@ -87,6 +89,7 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     self.list_profilers = False
     self.show_info = False
     self.json_stdout = False
+    self.http_endpoint = None
 
   def _GetPluginData(self):
     """Retrieves the version and various plugin information.
@@ -188,6 +191,13 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
             'Output events as JSON to stdout instead of creating a .plaso file. '
             'When this option is used, the storage_file argument is ignored.'))
 
+    info_group.add_argument(
+        '--http-endpoint', dest='http_endpoint', type=str, metavar='URL',
+        help=(
+            'Send events as JSON to the specified HTTP endpoint instead of '
+            'creating a .plaso file. Format: http://host:port/path. '
+            'When this option is used, the storage_file argument is ignored.'))
+
     self.AddLogFileOptions(info_group)
 
     helpers_manager.ArgumentHelperManager.AddCommandLineArguments(
@@ -269,8 +279,27 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     Raises:
       BadConfigOption: if the options are invalid.
     """
-    # Parse the JSON stdout option first
+    # Parse the JSON stdout and HTTP endpoint options first
     self.json_stdout = getattr(options, 'json_stdout', False)
+    self.http_endpoint = getattr(options, 'http_endpoint', None)
+    
+    # Validate that only one output mode is specified
+    if self.json_stdout and self.http_endpoint:
+      raise errors.BadConfigOption(
+          'Cannot use both --json-stdout and --http-endpoint options.')
+    
+    # Validate HTTP endpoint URL format if specified
+    if self.http_endpoint:
+      from urllib.parse import urlparse
+      parsed_url = urlparse(self.http_endpoint)
+      if not parsed_url.scheme or not parsed_url.netloc:
+        raise errors.BadConfigOption(
+            f'Invalid HTTP endpoint URL: {self.http_endpoint}. '
+            'URL must include scheme and host (e.g., http://localhost:8080/events)')
+      if parsed_url.scheme not in ('http', 'https'):
+        raise errors.BadConfigOption(
+            f'Unsupported URL scheme: {parsed_url.scheme}. '
+            'Only http and https are supported.')
 
     # The extraction options are dependent on the data location.
     helpers_manager.ArgumentHelperManager.ParseOptions(
@@ -319,8 +348,8 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     self._ParsePerformanceOptions(options)
     self._ParseProcessingOptions(options)
 
-    # Handle storage file for non-JSON stdout mode
-    if not self.json_stdout:
+    # Handle storage file for normal mode (not JSON stdout or HTTP endpoint)
+    if not self.json_stdout and not self.http_endpoint:
       self._storage_file_path = self.ParseStringOption(options, 'storage_file')
       if not self._storage_file_path:
         self._storage_file_path = self._GenerateStorageFileName()
@@ -335,7 +364,7 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
             f'Unsupported storage serializer format: {serializer_format:s}')
       self._storage_serializer_format = serializer_format
     else:
-      # For JSON stdout mode, we don't need a storage file
+      # For JSON stdout or HTTP endpoint mode, we don't need a storage file
       self._storage_file_path = None
 
     helpers_manager.ArgumentHelperManager.ParseOptions(

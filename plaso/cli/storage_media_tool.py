@@ -372,7 +372,7 @@ class StorageMediaTool(tools.CLITool):
   _BINARY_DATA_CREDENTIAL_TYPES = ['key_data']
 
   _SUPPORTED_CREDENTIAL_TYPES = [
-      'key_data', 'password', 'recovery_password', 'startup_key']
+      'key_data', 'password', 'recovery_password', 'startup_key', 'skip']
 
   def __init__(self, input_reader=None, output_writer=None):
     """Initializes a CLI tool that supports storage media as input.
@@ -416,6 +416,9 @@ class StorageMediaTool(tools.CLITool):
 
     for credential_string in credentials:
       credential_type, _, credential_data = credential_string.partition(':')
+      if credential_type == 'skip':
+        continue
+
       if not credential_type or not credential_data:
         raise errors.BadConfigOption(
             f'Badly formatted credential: {credential_string:s}.')

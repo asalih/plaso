@@ -39,6 +39,7 @@ from plaso.parsers import presets as parsers_presets
 from plaso.storage import factory as storage_factory
 from plaso.storage import writer as storage_writer
 from plaso.storage.json_streaming_writer import JSONStreamingStorageWriter
+from plaso.storage.http_streaming_writer import HTTPStreamingStorageWriter
 
 
 class ExtractionTool(
@@ -706,10 +707,11 @@ class ExtractionTool(
           file system.
       UserAbort: if the user initiated an abort.
     """
-    # Check if JSON stdout mode is enabled
+    # Check if JSON stdout mode or HTTP endpoint mode is enabled
     json_stdout_mode = getattr(self, 'json_stdout', False)
+    http_endpoint = getattr(self, 'http_endpoint', None)
     
-    if not json_stdout_mode:
+    if not json_stdout_mode and not http_endpoint:
       self._CheckStorageFile(self._storage_file_path, warn_about_existing=True)
 
     try:
@@ -724,9 +726,9 @@ class ExtractionTool(
         self._file_system_path_specs = [archive_path_spec]
         self._source_type = definitions.SOURCE_TYPE_ARCHIVE
 
-    # Set status view mode - use linear mode for JSON stdout to prevent screen clearing
-    if json_stdout_mode:
-      # For JSON stdout mode, disable status updates completely for clean output
+    # Set status view mode - use linear mode for JSON stdout or HTTP endpoint to prevent screen clearing
+    if json_stdout_mode or http_endpoint:
+      # For JSON stdout or HTTP endpoint mode, disable status updates completely for clean output
       self._status_view.SetMode(status_view.StatusView.MODE_FILE)
       # Set status file to /dev/null to suppress output
       import os
@@ -743,7 +745,7 @@ class ExtractionTool(
         artifact_filters=self._artifact_filters,
         filter_file=self._filter_file)
 
-    if not json_stdout_mode:
+    if not json_stdout_mode and not http_endpoint:
       self._output_writer.Write('\n')
       self._status_view.PrintExtractionStatusHeader(None)
       self._output_writer.Write('Processing started.\n')
@@ -758,6 +760,13 @@ class ExtractionTool(
         storage_writer.Open()
       except IOError as exception:
         raise IOError(f'Unable to open storage with error: {exception!s}')
+    elif http_endpoint:
+      # Create an HTTP streaming storage writer
+      storage_writer = HTTPStreamingStorageWriter(http_endpoint)
+      try:
+        storage_writer.Open()
+      except IOError as exception:
+        raise IOError(f'Unable to open HTTP storage with error: {exception!s}')
     else:
       storage_writer = storage_factory.StorageFactory.CreateStorageWriter(
           self._storage_format)
@@ -774,7 +783,7 @@ class ExtractionTool(
     number_of_extraction_warnings = 0
 
     try:
-      if not json_stdout_mode:
+      if not json_stdout_mode and not http_endpoint:
         stored_number_of_extraction_warnings = (
             storage_writer.GetNumberOfAttributeContainers('extraction_warning'))
 
@@ -782,7 +791,7 @@ class ExtractionTool(
         processing_status = self._ProcessSource(session, storage_writer)
 
       finally:
-        if not json_stdout_mode:
+        if not json_stdout_mode and not http_endpoint:
           number_of_extraction_warnings = (
               storage_writer.GetNumberOfAttributeContainers(
                   'extraction_warning') - stored_number_of_extraction_warnings)
@@ -793,7 +802,7 @@ class ExtractionTool(
     finally:
       storage_writer.Close()
 
-    if not json_stdout_mode:
+    if not json_stdout_mode and not http_endpoint:
       self._status_view.PrintExtractionSummary(
           processing_status, number_of_extraction_warnings)
 

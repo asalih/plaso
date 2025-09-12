@@ -89,7 +89,7 @@ def Main():
     logging.warning('Aborted by user.')
     return 1
 
-  except (IOError, errors.BadConfigOption,
+  except (IOError, ValueError, errors.BadConfigOption,
           errors.SourceScannerError) as exception:
     # Display message on stdout as well as the log file.
     print(exception)
