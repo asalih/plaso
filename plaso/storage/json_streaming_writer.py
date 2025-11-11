@@ -20,12 +20,14 @@ from plaso.storage import writer as storage_writer
 class JSONStreamingStorageWriter(storage_writer.StorageWriter):
   """JSON streaming storage writer."""
 
-  def __init__(self, output_file=None):
+  def __init__(self, output_file=None, event_filter=None):
     """Initializes a JSON streaming storage writer.
 
     Args:
       output_file (Optional[TextIO]): output file-like object to write to.
           If None, stdout will be used.
+      event_filter (Optional[EventObjectFilter]): event filter for filtering
+          events by timestamp or other criteria.
     """
     super(JSONStreamingStorageWriter, self).__init__()
     self._output_file = output_file
@@ -33,6 +35,7 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
     self._field_formatting_helper = shared_json.JSONFieldFormattingHelper()
     self._json_encoder = json.JSONEncoder(ensure_ascii=False, sort_keys=True)
     self._output_mediator = mediator.OutputMediator(storage_reader=self)
+    self._event_filter = event_filter
     
     # Create a temporary file for the real storage
     self._temp_file = tempfile.NamedTemporaryFile(suffix='.plaso', delete=False)
@@ -274,6 +277,19 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
                 'event_tag', event_tag_identifier)
           except Exception:
             pass
+
+      # Apply event filter if configured
+      if self._event_filter:
+        try:
+          filter_match = self._event_filter.Match(
+              event, event_data, event_data_stream, event_tag)
+          # If filter doesn't match, skip this event
+          if filter_match is False:
+            self._real_storage_writer.AddAttributeContainer(container)
+            return
+        except Exception:
+          # If filtering fails, include the event to be safe
+          pass
 
       # Get field values
       field_values = self._GetFieldValues(

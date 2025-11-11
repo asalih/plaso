@@ -14,6 +14,7 @@ from plaso.analyzers.hashers import manager as hashers_manager
 from plaso.cli import extraction_tool
 from plaso.cli import views
 from plaso.cli.helpers import manager as helpers_manager
+from plaso.filters import event_filter
 from plaso.lib import definitions
 from plaso.lib import errors
 from plaso.lib import loggers
@@ -156,7 +157,7 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
         'extraction arguments')
 
     argument_helper_names = [
-        'archives', 'artifact_filters', 'extraction', 'filter_file', 'hashers',
+        'archives', 'artifact_filters', 'date_filters', 'extraction', 'filter_file', 'hashers',
         'parsers', 'yara_rules']
     helpers_manager.ArgumentHelperManager.AddCommandLineArguments(
         extraction_group, names=argument_helper_names)
@@ -197,6 +198,12 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
             'Send events as JSON to the specified HTTP endpoint instead of '
             'creating a .plaso file. Format: http://host:port/path. '
             'When this option is used, the storage_file argument is ignored.'))
+
+    info_group.add_argument(
+        '--event-filter', dest='event_filter', type=str, metavar='FILTER',
+        help=(
+            'Filter events by expression (for streaming modes only). '
+            'Example: "date > \'2024-09-15 08:00:00\' and date < \'2024-09-15 18:00:00\'"'))
 
     self.AddLogFileOptions(info_group)
 
@@ -282,6 +289,24 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     # Parse the JSON stdout and HTTP endpoint options first
     self.json_stdout = getattr(options, 'json_stdout', False)
     self.http_endpoint = getattr(options, 'http_endpoint', None)
+    
+    # Parse event filter for streaming modes
+    event_filter_expression = getattr(options, 'event_filter', None)
+    if event_filter_expression:
+      if not (self.json_stdout or self.http_endpoint):
+        raise errors.BadConfigOption(
+            '--event-filter can only be used with --json-stdout or --http-endpoint.')
+      
+      # Create and compile the event filter
+      event_filter_object = event_filter.EventObjectFilter()
+      try:
+        event_filter_object.CompileFilter(event_filter_expression)
+        setattr(self, '_event_filter', event_filter_object)
+      except errors.ParseError as exception:
+        raise errors.BadConfigOption(
+            f'Unable to compile event filter expression with error: {exception!s}')
+    else:
+      setattr(self, '_event_filter', None)
     
     # Validate that only one output mode is specified
     if self.json_stdout and self.http_endpoint:

@@ -28,6 +28,7 @@ from plaso.cli.helpers import manager as helpers_manager
 from plaso.containers import artifacts
 from plaso.engine import configurations
 from plaso.engine import engine
+from plaso.filters import event_filter
 from plaso.single_process import extraction_engine as single_extraction_engine
 from plaso.filters import parser_filter
 from plaso.helpers import language_tags
@@ -755,14 +756,16 @@ class ExtractionTool(
 
     if json_stdout_mode:
       # Create a custom JSON streaming storage writer
-      storage_writer = JSONStreamingStorageWriter()
+      event_filter_object = getattr(self, '_event_filter', None)
+      storage_writer = JSONStreamingStorageWriter(event_filter=event_filter_object)
       try:
         storage_writer.Open()
       except IOError as exception:
         raise IOError(f'Unable to open storage with error: {exception!s}')
     elif http_endpoint:
       # Create an HTTP streaming storage writer
-      storage_writer = HTTPStreamingStorageWriter(http_endpoint)
+      event_filter_object = getattr(self, '_event_filter', None)
+      storage_writer = HTTPStreamingStorageWriter(http_endpoint, event_filter=event_filter_object)
       try:
         storage_writer.Open()
       except IOError as exception:

@@ -17,7 +17,7 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
   """HTTP streaming storage writer that sends events to an HTTP endpoint."""
 
   def __init__(self, endpoint_url, batch_size=100, flush_interval=5.0, 
-               max_retries=3, headers=None):
+               max_retries=3, headers=None, event_filter=None):
     """Initializes an HTTP streaming storage writer.
 
     Args:
@@ -28,8 +28,10 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
       max_retries (Optional[int]): maximum number of retry attempts for failed
           HTTP requests.
       headers (Optional[dict]): additional HTTP headers to send with requests.
+      event_filter (Optional[EventObjectFilter]): event filter for filtering
+          events by timestamp or other criteria.
     """
-    super(HTTPStreamingStorageWriter, self).__init__()
+    super(HTTPStreamingStorageWriter, self).__init__(event_filter=event_filter)
     
     # Validate URL
     parsed_url = urlparse(endpoint_url)
@@ -145,6 +147,19 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
                 'event_tag', event_tag_identifier)
           except Exception:
             pass
+
+      # Apply event filter if configured
+      if self._event_filter:
+        try:
+          filter_match = self._event_filter.Match(
+              event, event_data, event_data_stream, event_tag)
+          # If filter doesn't match, skip this event
+          if filter_match is False:
+            self._real_storage_writer.AddAttributeContainer(container)
+            return
+        except Exception:
+          # If filtering fails, include the event to be safe
+          pass
 
       # Get field values using parent's method
       field_values = self._GetFieldValues(
