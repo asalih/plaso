@@ -25,6 +25,8 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
   """Log2timeline CLI tool.
 
   Attributes:
+    consolidated_timestamps (bool): True if timestamps should be consolidated
+        into a single event per record instead of one event per timestamp.
     dependencies_check (bool): True if the availability and versions of
         dependencies should be checked.
     list_archive_types (bool): True if the archive types should be listed.
@@ -83,6 +85,7 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
         input_reader=input_reader, output_writer=output_writer)
     self._storage_serializer_format = definitions.SERIALIZER_FORMAT_JSON
 
+    self.consolidated_timestamps = False
     self.dependencies_check = True
     self.list_archive_types = False
     self.list_hashers = False
@@ -205,6 +208,16 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
             'Filter events by expression (for streaming modes only). '
             'Example: "date > \'2024-09-15 08:00:00\' and date < \'2024-09-15 18:00:00\'"'))
 
+    info_group.add_argument(
+        '--consolidated_timestamps', '--consolidated-timestamps',
+        dest='consolidated_timestamps', action='store_true', default=False,
+        help=(
+            'Output a single event per record with all timestamps as separate '
+            'fields instead of one event per timestamp. For example, an MFT '
+            'entry will have creation_time, modification_time, access_time, '
+            'and change_time as separate columns in a single event. '
+            'Only works with --json-stdout or --http-endpoint.'))
+
     self.AddLogFileOptions(info_group)
 
     helpers_manager.ArgumentHelperManager.AddCommandLineArguments(
@@ -289,6 +302,15 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     # Parse the JSON stdout and HTTP endpoint options first
     self.json_stdout = getattr(options, 'json_stdout', False)
     self.http_endpoint = getattr(options, 'http_endpoint', None)
+    self.consolidated_timestamps = getattr(
+        options, 'consolidated_timestamps', False)
+    
+    # Validate consolidated_timestamps usage
+    if self.consolidated_timestamps:
+      if not (self.json_stdout or self.http_endpoint):
+        raise errors.BadConfigOption(
+            '--consolidated-timestamps can only be used with --json-stdout '
+            'or --http-endpoint.')
     
     # Parse event filter for streaming modes
     event_filter_expression = getattr(options, 'event_filter', None)

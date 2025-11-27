@@ -480,7 +480,8 @@ class SingleProcessEngine(engine.BaseEngine):
     self._event_data_timeliner = timeliner.EventDataTimeliner(
         data_location=processing_configuration.data_location,
         preferred_year=processing_configuration.preferred_year,
-        system_configurations=system_configurations)
+        system_configurations=system_configurations,
+        consolidated_timestamps=processing_configuration.consolidated_timestamps)
 
     try:
       self._event_data_timeliner.SetPreferredTimeZone(

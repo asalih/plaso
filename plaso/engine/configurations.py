@@ -191,6 +191,8 @@ class ProcessingConfiguration(interface.AttributeContainer):
     artifact_filters (Optional list[str]): names of artifact
           definitions that are used for filtering file system and Windows
           Registry key paths.
+    consolidated_timestamps (bool): True if timestamps should be consolidated
+        into a single event per record instead of one event per timestamp.
     credentials (list[CredentialConfiguration]): credential configurations.
     custom_artifacts_path (str): path to custom artifact definitions
         directory or file.
@@ -228,6 +230,7 @@ class ProcessingConfiguration(interface.AttributeContainer):
     super(ProcessingConfiguration, self).__init__()
     self.artifact_definitions_path = None
     self.artifact_filters = None
+    self.consolidated_timestamps = False
     self.credentials = []
     self.custom_artifacts_path = None
     self.custom_formatters_path = None

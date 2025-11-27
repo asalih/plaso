@@ -21,6 +21,8 @@ class EventDataTimeliner(object):
   """The event data timeliner.
 
   Attributes:
+    consolidated_timestamps (bool): True if timestamps should be consolidated
+        into a single event per record.
     number_of_produced_events (int): number of produced events.
     parsers_counter (collections.Counter): number of events per parser or
         parser plugin.
@@ -35,7 +37,7 @@ class EventDataTimeliner(object):
 
   def __init__(
       self, data_location=None, preferred_year=None,
-      system_configurations=None):
+      system_configurations=None, consolidated_timestamps=False):
     """Initializes an event data timeliner.
 
     Args:
@@ -44,10 +46,14 @@ class EventDataTimeliner(object):
           date and time values.
       system_configurations (Optional[list[SystemConfigurationArtifact]]):
           system configurations.
+      consolidated_timestamps (Optional[bool]): True if timestamps should be
+          consolidated into a single event per record instead of creating one
+          event per timestamp.
     """
     super(EventDataTimeliner, self).__init__()
     self._attribute_mappings = {}
     self._base_dates = {}
+    self._consolidated_timestamps = consolidated_timestamps
     self._current_date = self._GetCurrentDate()
     self._data_location = data_location
     self._place_holder_event = set()
@@ -392,6 +398,14 @@ class EventDataTimeliner(object):
     if parser_chain:
       parser_name = parser_chain.rsplit('/', maxsplit=1)[-1]
 
+    # In consolidated mode, create only ONE event per EventData using the
+    # first available timestamp as the primary timestamp.
+    if self._consolidated_timestamps:
+      self._ProcessEventDataConsolidated(
+          storage_writer, event_data, event_data_stream, attribute_mappings,
+          parser_name)
+      return
+
     number_of_events = 0
     for attribute_name, time_description in attribute_mappings.items():
       attribute_values = getattr(event_data, attribute_name, None) or []
@@ -439,6 +453,67 @@ class EventDataTimeliner(object):
       self.parsers_counter['total'] += 1
 
       self.number_of_produced_events += 1
+
+  def _ProcessEventDataConsolidated(
+      self, storage_writer, event_data, event_data_stream, attribute_mappings,
+      parser_name):
+    """Generate a single consolidated event from event data.
+
+    In consolidated mode, all timestamp attributes from the EventData are
+    preserved and a single event is created using the first available
+    timestamp as the primary timestamp.
+
+    Args:
+      storage_writer (StorageWriter): storage writer.
+      event_data (EventData): event data.
+      event_data_stream (EventDataStream): event data stream.
+      attribute_mappings (dict[str, str]): mappings of attribute names to
+          time descriptions.
+      parser_name (str): name of the parser or None.
+    """
+    # Find the first valid timestamp to use as the primary timestamp
+    primary_date_time = None
+    primary_time_description = None
+
+    for attribute_name, time_description in attribute_mappings.items():
+      attribute_values = getattr(event_data, attribute_name, None) or []
+      if not isinstance(attribute_values, list):
+        attribute_values = [attribute_values]
+
+      for attribute_value in attribute_values:
+        if isinstance(attribute_value, dfdatetime_interface.DateTimeValues):
+          primary_date_time = attribute_value
+          primary_time_description = time_description
+          break
+
+      if primary_date_time:
+        break
+
+    # If no timestamp found, use a placeholder
+    if not primary_date_time:
+      if event_data.data_type not in self._place_holder_event:
+        return
+
+      primary_date_time = dfdatetime_semantic_time.NotSet()
+      primary_time_description = definitions.TIME_DESCRIPTION_NOT_A_TIME
+
+    # Create the consolidated event
+    event = self._GetEvent(
+        storage_writer, event_data, event_data_stream, primary_date_time,
+        primary_time_description)
+
+    try:
+      storage_writer.AddAttributeContainer(event)
+    except OverflowError as exception:
+      message = f'unable to add event with error: {exception!s}'
+      self._ProduceTimeliningWarning(storage_writer, event_data, message)
+      return
+
+    if parser_name:
+      self.parsers_counter[parser_name] += 1
+    self.parsers_counter['total'] += 1
+
+    self.number_of_produced_events += 1
 
   def SetPreferredTimeZone(self, time_zone_string):
     """Sets the preferred time zone for zone-less date and time values.

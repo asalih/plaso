@@ -17,7 +17,8 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
   """HTTP streaming storage writer that sends events to an HTTP endpoint."""
 
   def __init__(self, endpoint_url, batch_size=100, flush_interval=5.0, 
-               max_retries=3, headers=None, event_filter=None):
+               max_retries=3, headers=None, event_filter=None,
+               consolidated_timestamps=False):
     """Initializes an HTTP streaming storage writer.
 
     Args:
@@ -30,8 +31,13 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
       headers (Optional[dict]): additional HTTP headers to send with requests.
       event_filter (Optional[EventObjectFilter]): event filter for filtering
           events by timestamp or other criteria.
+      consolidated_timestamps (Optional[bool]): True if timestamps should be
+          included as separate fields in the output (one event per record
+          with all timestamps).
     """
-    super(HTTPStreamingStorageWriter, self).__init__(event_filter=event_filter)
+    super(HTTPStreamingStorageWriter, self).__init__(
+        event_filter=event_filter,
+        consolidated_timestamps=consolidated_timestamps)
     
     # Validate URL
     parsed_url = urlparse(endpoint_url)

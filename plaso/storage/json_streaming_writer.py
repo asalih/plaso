@@ -20,7 +20,8 @@ from plaso.storage import writer as storage_writer
 class JSONStreamingStorageWriter(storage_writer.StorageWriter):
   """JSON streaming storage writer."""
 
-  def __init__(self, output_file=None, event_filter=None):
+  def __init__(self, output_file=None, event_filter=None,
+               consolidated_timestamps=False):
     """Initializes a JSON streaming storage writer.
 
     Args:
@@ -28,6 +29,9 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
           If None, stdout will be used.
       event_filter (Optional[EventObjectFilter]): event filter for filtering
           events by timestamp or other criteria.
+      consolidated_timestamps (Optional[bool]): True if timestamps should be
+          included as separate fields in the output (one event per record
+          with all timestamps).
     """
     super(JSONStreamingStorageWriter, self).__init__()
     self._output_file = output_file
@@ -36,6 +40,7 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
     self._json_encoder = json.JSONEncoder(ensure_ascii=False, sort_keys=True)
     self._output_mediator = mediator.OutputMediator(storage_reader=self)
     self._event_filter = event_filter
+    self._consolidated_timestamps = consolidated_timestamps
     
     # Create a temporary file for the real storage
     self._temp_file = tempfile.NamedTemporaryFile(suffix='.plaso', delete=False)
@@ -92,15 +97,39 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
 
     if event_data:
       for attribute_name, attribute_value in event_data.GetAttributes():
-        # Ignore attribute container identifier and date and time values.
-        if isinstance(attribute_value, (
-            interface.AttributeContainerIdentifier,
-            dfdatetime_interface.DateTimeValues)):
+        # Ignore attribute container identifier values.
+        if isinstance(attribute_value, interface.AttributeContainerIdentifier):
           continue
 
+        # Handle date and time values based on consolidated mode
+        if isinstance(attribute_value, dfdatetime_interface.DateTimeValues):
+          if self._consolidated_timestamps:
+            # In consolidated mode, include timestamps as ISO strings
+            if hasattr(attribute_value, 'CopyToDateTimeString'):
+              try:
+                field_values[attribute_name] = attribute_value.CopyToDateTimeString()
+              except (AttributeError, ValueError):
+                field_values[attribute_name] = None
+            else:
+              field_values[attribute_name] = None
+          continue
+
+        # Handle lists of datetime values
         if (isinstance(attribute_value, list) and attribute_value and
             isinstance(attribute_value[0],
                        dfdatetime_interface.DateTimeValues)):
+          if self._consolidated_timestamps:
+            # In consolidated mode, include list of timestamps as ISO strings
+            timestamp_strings = []
+            for dt_value in attribute_value:
+              if hasattr(dt_value, 'CopyToDateTimeString'):
+                try:
+                  timestamp_strings.append(dt_value.CopyToDateTimeString())
+                except (AttributeError, ValueError):
+                  timestamp_strings.append(None)
+              else:
+                timestamp_strings.append(None)
+            field_values[attribute_name] = timestamp_strings
           continue
 
         # Ignore protected internal only attributes.
@@ -133,6 +162,12 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
         if isinstance(attribute_value,
                       interface.AttributeContainerIdentifier):
           continue
+
+        # In consolidated mode, skip datetime, timestamp, and timestamp_desc
+        # since all individual timestamps are included as separate fields
+        if self._consolidated_timestamps:
+          if attribute_name in ('date_time', 'timestamp', 'timestamp_desc'):
+            continue
 
         if attribute_name == 'date_time':
           # Map to "datetime" field name for OpenSearch compatibility

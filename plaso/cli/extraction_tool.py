@@ -215,6 +215,8 @@ class ExtractionTool(
     configuration.profiling.profilers = self._profilers
     configuration.task_storage_format = self._task_storage_format
     configuration.temporary_directory = self._temporary_directory
+    configuration.consolidated_timestamps = getattr(
+        self, 'consolidated_timestamps', False)
 
     return configuration
 
@@ -757,7 +759,10 @@ class ExtractionTool(
     if json_stdout_mode:
       # Create a custom JSON streaming storage writer
       event_filter_object = getattr(self, '_event_filter', None)
-      storage_writer = JSONStreamingStorageWriter(event_filter=event_filter_object)
+      consolidated_timestamps = getattr(self, 'consolidated_timestamps', False)
+      storage_writer = JSONStreamingStorageWriter(
+          event_filter=event_filter_object,
+          consolidated_timestamps=consolidated_timestamps)
       try:
         storage_writer.Open()
       except IOError as exception:
@@ -765,7 +770,10 @@ class ExtractionTool(
     elif http_endpoint:
       # Create an HTTP streaming storage writer
       event_filter_object = getattr(self, '_event_filter', None)
-      storage_writer = HTTPStreamingStorageWriter(http_endpoint, event_filter=event_filter_object)
+      consolidated_timestamps = getattr(self, 'consolidated_timestamps', False)
+      storage_writer = HTTPStreamingStorageWriter(
+          http_endpoint, event_filter=event_filter_object,
+          consolidated_timestamps=consolidated_timestamps)
       try:
         storage_writer.Open()
       except IOError as exception:
