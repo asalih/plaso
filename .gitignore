@@ -48,3 +48,5 @@ config/vagrant/*.log
 
 # Python Virtual Environments
 venv/
+
+test_data/

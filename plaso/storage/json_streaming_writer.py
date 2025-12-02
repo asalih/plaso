@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """JSON streaming storage writer for outputting events directly to stdout."""
 
+from functools import lru_cache
 import json
 import os
+import sys
 import tempfile
 import uuid
 
@@ -37,10 +39,14 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
     self._output_file = output_file
     self._serializer = json_serializer.JSONAttributeContainerSerializer()
     self._field_formatting_helper = shared_json.JSONFieldFormattingHelper()
-    self._json_encoder = json.JSONEncoder(ensure_ascii=False, sort_keys=True)
+    self._json_encoder = json.JSONEncoder(ensure_ascii=False, sort_keys=False)
     self._output_mediator = mediator.OutputMediator(storage_reader=self)
     self._event_filter = event_filter
     self._consolidated_timestamps = consolidated_timestamps
+    
+    # Buffering for stdout output (reduce flush overhead)
+    self._output_buffer = []
+    self._buffer_size = 100  # Flush every 100 events
     
     # Create a temporary file for the real storage
     self._temp_file = tempfile.NamedTemporaryFile(suffix='.plaso', delete=False)
@@ -52,6 +58,9 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
     
     # Set _store to the real storage writer's store to satisfy base class checks
     self._store = None  # Will be set in Open()
+    
+    # Cache for container lookups (significant performance improvement)
+    self._container_cache = {}
 
   def _RaiseIfNotWritable(self):
     """Raises if the storage writer is not writable."""
@@ -67,11 +76,17 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
 
   def Close(self):
     """Closes the storage writer and cleans up temp file."""
+    # Flush any remaining buffered output
+    self._flush_output_buffer()
+    
     if self._real_storage_writer:
       self._real_storage_writer.Close()
       
     # Clear _store to satisfy base class
     self._store = None
+      
+    # Clear container cache
+    self._container_cache.clear()
       
     # Clean up temp file
     try:
@@ -271,6 +286,58 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
       data_type = getattr(event_data, 'data_type', 'unknown')
       return 'Event of type: {0}'.format(data_type)
 
+  def _get_cached_container(self, container_type, identifier):
+    """Gets a container from cache or database.
+    
+    Args:
+      container_type (str): container type.
+      identifier (AttributeContainerIdentifier): container identifier.
+    
+    Returns:
+      AttributeContainer: container or None if not found.
+    """
+    if identifier is None:
+      return None
+      
+    # Create cache key from container type and identifier
+    cache_key = (container_type, identifier.sequence_number)
+    
+    # Check cache first
+    if cache_key in self._container_cache:
+      return self._container_cache[cache_key]
+    
+    # Not in cache, fetch from database
+    try:
+      container = self._real_storage_writer.GetAttributeContainerByIdentifier(
+          container_type, identifier)
+      
+      # Store in cache (limit cache size to prevent memory issues)
+      if len(self._container_cache) < 10000:
+        self._container_cache[cache_key] = container
+      elif len(self._container_cache) >= 10000:
+        # Cache full, clear oldest entries (simple LRU approximation)
+        # Remove first 20% of items
+        items_to_remove = list(self._container_cache.keys())[:2000]
+        for key in items_to_remove:
+          del self._container_cache[key]
+        self._container_cache[cache_key] = container
+        
+      return container
+    except Exception:
+      return None
+
+  def _flush_output_buffer(self):
+    """Flushes buffered JSON output to stdout."""
+    if not self._output_buffer:
+      return
+      
+    output_file = self._output_file or sys.stdout
+    for json_string in self._output_buffer:
+      output_file.write(json_string)
+      output_file.write('\n')
+    output_file.flush()
+    self._output_buffer.clear()
+
   def AddAttributeContainer(self, container):
     """Adds an attribute container.
 
@@ -283,35 +350,21 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
       event_data_stream = None
       event_tag = None
 
-      # Get event data
+      # Get event data using cached lookup
       if hasattr(event, 'GetEventDataIdentifier'):
         event_data_identifier = event.GetEventDataIdentifier()
-        if event_data_identifier:
-          try:
-            event_data = self._real_storage_writer.GetAttributeContainerByIdentifier(
-                'event_data', event_data_identifier)
-          except Exception:
-            pass
+        event_data = self._get_cached_container('event_data', event_data_identifier)
 
-      # Get event data stream
+      # Get event data stream using cached lookup
       if event_data and hasattr(event_data, 'GetEventDataStreamIdentifier'):
         event_data_stream_identifier = event_data.GetEventDataStreamIdentifier()
-        if event_data_stream_identifier:
-          try:
-            event_data_stream = self._real_storage_writer.GetAttributeContainerByIdentifier(
-                'event_data_stream', event_data_stream_identifier)
-          except Exception:
-            pass
+        event_data_stream = self._get_cached_container(
+            'event_data_stream', event_data_stream_identifier)
 
-      # Get event tag
+      # Get event tag using cached lookup
       if hasattr(event, 'GetEventTagIdentifier'):
         event_tag_identifier = event.GetEventTagIdentifier()
-        if event_tag_identifier:
-          try:
-            event_tag = self._real_storage_writer.GetAttributeContainerByIdentifier(
-                'event_tag', event_tag_identifier)
-          except Exception:
-            pass
+        event_tag = self._get_cached_container('event_tag', event_tag_identifier)
 
       # Apply event filter if configured
       if self._event_filter:
@@ -332,7 +385,12 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
 
       try:
         json_string = self._json_encoder.encode(field_values)
-        print(json_string, flush=True)
+        # Buffer output instead of immediate flush
+        self._output_buffer.append(json_string)
+        
+        # Flush buffer when it reaches the threshold
+        if len(self._output_buffer) >= self._buffer_size:
+          self._flush_output_buffer()
       except Exception:
         # Silently skip events that can't be converted
         pass

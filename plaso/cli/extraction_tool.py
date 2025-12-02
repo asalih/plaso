@@ -41,6 +41,8 @@ from plaso.storage import factory as storage_factory
 from plaso.storage import writer as storage_writer
 from plaso.storage.json_streaming_writer import JSONStreamingStorageWriter
 from plaso.storage.http_streaming_writer import HTTPStreamingStorageWriter
+from plaso.storage.direct_output_writer import DirectOutputStorageWriter
+from plaso.storage.direct_http_writer import DirectHTTPOutputStorageWriter
 
 
 class ExtractionTool(
@@ -427,6 +429,12 @@ class ExtractionTool(
     Raises:
       BadConfigOption: if an invalid collection filter was specified.
     """
+    import sys
+    print(f"📍 _ProcessSource ENTERED", file=sys.stderr)
+    print(f"   storage_writer type: {type(storage_writer).__name__}", file=sys.stderr)
+    print(f"   source_type: {self._source_type}", file=sys.stderr)
+    print(f"   single_process_mode (initial): {self._single_process_mode}", file=sys.stderr)
+    
     single_process_mode = self._single_process_mode
     if self._source_type == dfvfs_definitions.SOURCE_TYPE_FILE:
       single_process_mode = True
@@ -714,6 +722,13 @@ class ExtractionTool(
     json_stdout_mode = getattr(self, 'json_stdout', False)
     http_endpoint = getattr(self, 'http_endpoint', None)
     
+    import sys
+    print(f"\n{'='*60}", file=sys.stderr)
+    print(f"🔍 DEBUG: ExtractEventsFromSources called", file=sys.stderr)
+    print(f"   json_stdout_mode: {json_stdout_mode}", file=sys.stderr)
+    print(f"   http_endpoint: {http_endpoint}", file=sys.stderr)
+    print(f"{'='*60}\n", file=sys.stderr)
+    
     if not json_stdout_mode and not http_endpoint:
       self._CheckStorageFile(self._storage_file_path, warn_about_existing=True)
 
@@ -757,26 +772,47 @@ class ExtractionTool(
     session = engine.BaseEngine.CreateSession()
 
     if json_stdout_mode:
-      # Create a custom JSON streaming storage writer
+      # Create a direct output storage writer (no database!)
       event_filter_object = getattr(self, '_event_filter', None)
       consolidated_timestamps = getattr(self, 'consolidated_timestamps', False)
-      storage_writer = JSONStreamingStorageWriter(
+      storage_writer = DirectOutputStorageWriter(
           event_filter=event_filter_object,
-          consolidated_timestamps=consolidated_timestamps)
+          consolidated_timestamps=consolidated_timestamps,
+          output_format='json')
       try:
         storage_writer.Open()
       except IOError as exception:
         raise IOError(f'Unable to open storage with error: {exception!s}')
     elif http_endpoint:
-      # Create an HTTP streaming storage writer
+      # Create a direct HTTP output storage writer (no database!)
+      import sys
+      print(f"\n{'='*60}", file=sys.stderr)
+      print(f"🔧 DEBUG: Creating DirectHTTPOutputStorageWriter", file=sys.stderr)
+      print(f"   Endpoint: {http_endpoint}", file=sys.stderr)
+      print(f"   Consolidated: {getattr(self, 'consolidated_timestamps', False)}", file=sys.stderr)
+      print(f"{'='*60}\n", file=sys.stderr)
+      
       event_filter_object = getattr(self, '_event_filter', None)
       consolidated_timestamps = getattr(self, 'consolidated_timestamps', False)
-      storage_writer = HTTPStreamingStorageWriter(
-          http_endpoint, event_filter=event_filter_object,
-          consolidated_timestamps=consolidated_timestamps)
+      
+      try:
+        storage_writer = DirectHTTPOutputStorageWriter(
+            http_endpoint, event_filter=event_filter_object,
+            consolidated_timestamps=consolidated_timestamps)
+        print(f"✅ DirectHTTPOutputStorageWriter created successfully", file=sys.stderr)
+      except Exception as e:
+        print(f"❌ ERROR creating DirectHTTPOutputStorageWriter: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        raise
+      
       try:
         storage_writer.Open()
-      except IOError as exception:
+        print(f"✅ DirectHTTPOutputStorageWriter opened successfully", file=sys.stderr)
+      except Exception as exception:
+        print(f"❌ ERROR opening DirectHTTPOutputStorageWriter: {exception}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         raise IOError(f'Unable to open HTTP storage with error: {exception!s}')
     else:
       storage_writer = storage_factory.StorageFactory.CreateStorageWriter(
@@ -799,7 +835,10 @@ class ExtractionTool(
             storage_writer.GetNumberOfAttributeContainers('extraction_warning'))
 
       try:
+        import sys
+        print(f"🔄 Calling _ProcessSource with storage_writer: {type(storage_writer).__name__}", file=sys.stderr)
         processing_status = self._ProcessSource(session, storage_writer)
+        print(f"✅ _ProcessSource completed with status: {processing_status}", file=sys.stderr)
 
       finally:
         if not json_stdout_mode and not http_endpoint:

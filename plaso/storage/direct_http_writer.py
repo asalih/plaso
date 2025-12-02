@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""HTTP streaming storage writer for sending events to HTTP endpoints."""
+"""Direct HTTP output storage writer that bypasses database storage entirely."""
 
 import json
 import logging
@@ -10,16 +10,20 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-from plaso.storage.json_streaming_writer import JSONStreamingStorageWriter
+from plaso.storage.direct_output_writer import DirectOutputStorageWriter
 
 
-class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
-  """HTTP streaming storage writer that sends events to an HTTP endpoint."""
+class DirectHTTPOutputStorageWriter(DirectOutputStorageWriter):
+  """Direct HTTP output storage writer that sends events without DB storage.
+  
+  This is the HTTP version of DirectOutputStorageWriter - it sends events
+  directly to an HTTP endpoint without any database operations.
+  """
 
-  def __init__(self, endpoint_url, batch_size=100, flush_interval=5.0, 
+  def __init__(self, endpoint_url, batch_size=100, flush_interval=5.0,
                max_retries=3, headers=None, event_filter=None,
                consolidated_timestamps=False):
-    """Initializes an HTTP streaming storage writer.
+    """Initializes a direct HTTP output storage writer.
 
     Args:
       endpoint_url (str): HTTP endpoint URL to send events to.
@@ -35,9 +39,12 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
           included as separate fields in the output (one event per record
           with all timestamps).
     """
-    super(HTTPStreamingStorageWriter, self).__init__(
+    # Initialize parent with 'dict' format since we'll handle JSON encoding once per batch
+    super(DirectHTTPOutputStorageWriter, self).__init__(
+        output_file=None,
         event_filter=event_filter,
-        consolidated_timestamps=consolidated_timestamps)
+        consolidated_timestamps=consolidated_timestamps,
+        output_format='dict')  # Store as dicts, encode to JSON once per batch
     
     # Validate URL
     parsed_url = urlparse(endpoint_url)
@@ -46,8 +53,7 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
     
     self._endpoint_url = endpoint_url
     
-    # HTTP writer doesn't use parent's JSON encoder (encodes in batches instead)
-    # Set to None to free memory
+    # Don't need JSON encoder from parent (we'll encode batches)
     self._json_encoder = None
     self._batch_size = batch_size
     self._flush_interval = flush_interval
@@ -69,16 +75,12 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
     self._sender_running = False
     
     # Statistics
-    self._events_sent = 0
-    self._events_failed = 0
     self._batches_sent = 0
     self._batches_failed = 0
-    
-    # Note: Container cache is inherited from parent JSONStreamingStorageWriter
 
   def Open(self, path=None, **kwargs):
-    """Opens the HTTP streaming storage writer."""
-    super(HTTPStreamingStorageWriter, self).Open(path, **kwargs)
+    """Opens the HTTP storage writer."""
+    super(DirectHTTPOutputStorageWriter, self).Open(path, **kwargs)
     
     # Start the background sender thread
     self._stop_event.clear()
@@ -86,10 +88,18 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
     self._sender_running = True
     self._sender_thread.start()
     
-    logging.info(f'HTTP streaming writer opened, sending to: {self._endpoint_url}')
+    print('🚀🚀🚀 DIRECT HTTP WRITER OPENED!')
+    print(f'    Endpoint: {self._endpoint_url}')
+    print(f'    Batch size: {self._batch_size}')
+    print(f'    Single process mode should be enabled')
+    
+    logging.warning(f'🚀 Direct HTTP writer opened, sending to: {self._endpoint_url}')
+    logging.warning(f'   Batch size: {self._batch_size}, Flush interval: {self._flush_interval}s')
+    logging.warning(f'   Event filter: {self._event_filter is not None}')
+    logging.warning(f'   Consolidated timestamps: {self._consolidated_timestamps}')
 
   def Close(self):
-    """Closes the HTTP streaming storage writer and flushes remaining events."""
+    """Closes the HTTP storage writer and flushes remaining events."""
     if self._sender_running:
       # Signal the sender thread to stop
       self._stop_event.set()
@@ -111,69 +121,32 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
       self._send_batch(self._batch_buffer)
       self._batch_buffer.clear()
     
-    super(HTTPStreamingStorageWriter, self).Close()
+    super(DirectHTTPOutputStorageWriter, self).Close()
     
+    stats = self.GetStatistics()
     logging.info(
-        f'HTTP streaming writer closed. Stats: {self._events_sent} events sent, '
-        f'{self._events_failed} events failed, {self._batches_sent} batches sent, '
+        f'Direct HTTP writer closed. Stats: {stats["events_output"]} events sent, '
+        f'{stats["events_filtered"]} events filtered, {self._batches_sent} batches sent, '
         f'{self._batches_failed} batches failed')
 
-  def AddAttributeContainer(self, container):
-    """Adds an attribute container.
-
-    Args:
-      container (AttributeContainer): attribute container.
-    """
-    if container.CONTAINER_TYPE == 'event':
-      event = container
-      event_data = None
-      event_data_stream = None
-      event_tag = None
-
-      # Get event data using cached lookup (inherited from parent)
-      if hasattr(event, 'GetEventDataIdentifier'):
-        event_data_identifier = event.GetEventDataIdentifier()
-        event_data = self._get_cached_container('event_data', event_data_identifier)
-
-      # Get event data stream using cached lookup
-      if event_data and hasattr(event_data, 'GetEventDataStreamIdentifier'):
-        event_data_stream_identifier = event_data.GetEventDataStreamIdentifier()
-        event_data_stream = self._get_cached_container(
-            'event_data_stream', event_data_stream_identifier)
-
-      # Get event tag using cached lookup
-      if hasattr(event, 'GetEventTagIdentifier'):
-        event_tag_identifier = event.GetEventTagIdentifier()
-        event_tag = self._get_cached_container('event_tag', event_tag_identifier)
-
-      # Apply event filter if configured
-      if self._event_filter:
-        try:
-          filter_match = self._event_filter.Match(
-              event, event_data, event_data_stream, event_tag)
-          # If filter doesn't match, skip this event
-          if filter_match is False:
-            self._real_storage_writer.AddAttributeContainer(container)
-            return
-        except Exception:
-          # If filtering fails, include the event to be safe
-          pass
-
-      # Get field values using parent's method (returns dict, not JSON)
-      field_values = self._GetFieldValues(
-          event, event_data, event_data_stream, event_tag)
-
-      # Queue the dict for HTTP sending (will be JSON-encoded once in _send_batch)
-      # Note: No double encoding - dicts are queued and encoded once during batching
+  def _flush_output_buffer(self):
+    """Flushes buffered output by queuing for HTTP sending."""
+    if not self._output_buffer:
+      return
+    
+    buffer_size = len(self._output_buffer)
+    if buffer_size > 0:
+      logging.debug(f'Queueing {buffer_size} events for HTTP sending')
+    
+    # Queue all buffered events for HTTP sending
+    for event_dict in self._output_buffer:
       try:
-        self._event_queue.put(field_values, timeout=1.0)
+        self._event_queue.put(event_dict, timeout=1.0)
       except queue.Full:
         logging.warning('Event queue full, dropping event')
-        self._events_failed += 1
-
-    # Forward to real storage writer (but not to parent's AddAttributeContainer 
-    # which would print to stdout)
-    self._real_storage_writer.AddAttributeContainer(container)
+        self._events_filtered += 1
+    
+    self._output_buffer.clear()
 
   def _sender_worker(self):
     """Background worker thread that sends batched events to HTTP endpoint."""
@@ -220,13 +193,14 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
     self._batch_buffer.clear()
     self._last_flush_time = time.time()
 
+    logging.warning(f'📤 Flushing batch of {len(batch_to_send)} events to {self._endpoint_url}')
     success = self._send_batch(batch_to_send)
     if success:
-      self._events_sent += len(batch_to_send)
       self._batches_sent += 1
+      logging.warning(f'✅ Batch #{self._batches_sent} sent successfully ({len(batch_to_send)} events)')
     else:
-      self._events_failed += len(batch_to_send)
       self._batches_failed += 1
+      logging.error(f'❌ Batch send failed ({len(batch_to_send)} events)')
 
   def _send_batch(self, events):
     """Sends a batch of events to the HTTP endpoint.
@@ -247,7 +221,7 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
       'timestamp': time.time()
     }
 
-    # Convert to JSON (single encoding - events are stored as dicts in queue)
+    # Convert to JSON (single encoding - events are stored as dicts)
     try:
       json_data = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
       json_bytes = json_data.encode('utf-8')
@@ -295,17 +269,18 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
     logging.error(f'Failed to send batch of {len(events)} events after all retries')
     return False
 
-  def get_statistics(self):
-    """Gets sending statistics.
-
+  def GetStatistics(self):
+    """Gets processing statistics.
+    
     Returns:
-      dict: statistics about events and batches sent/failed.
+      dict: statistics about events processed and HTTP batches sent.
     """
-    return {
-      'events_sent': self._events_sent,
-      'events_failed': self._events_failed,
-      'batches_sent': self._batches_sent,
-      'batches_failed': self._batches_failed,
-      'queue_size': self._event_queue.qsize(),
-      'buffer_size': len(self._batch_buffer)
-    }
+    stats = super(DirectHTTPOutputStorageWriter, self).GetStatistics()
+    stats.update({
+        'batches_sent': self._batches_sent,
+        'batches_failed': self._batches_failed,
+        'queue_size': self._event_queue.qsize(),
+        'buffer_size': len(self._batch_buffer)
+    })
+    return stats
+
