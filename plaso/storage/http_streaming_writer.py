@@ -18,7 +18,7 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
 
   def __init__(self, endpoint_url, batch_size=100, flush_interval=5.0, 
                max_retries=3, headers=None, event_filter=None,
-               consolidated_timestamps=False):
+               consolidated_timestamps=False, relative_paths=False):
     """Initializes an HTTP streaming storage writer.
 
     Args:
@@ -34,10 +34,13 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
       consolidated_timestamps (Optional[bool]): True if timestamps should be
           included as separate fields in the output (one event per record
           with all timestamps).
+      relative_paths (Optional[bool]): True if file paths should be reported
+          relative to the source path instead of as absolute paths.
     """
     super(HTTPStreamingStorageWriter, self).__init__(
         event_filter=event_filter,
-        consolidated_timestamps=consolidated_timestamps)
+        consolidated_timestamps=consolidated_timestamps,
+        relative_paths=relative_paths)
     
     # Validate URL
     parsed_url = urlparse(endpoint_url)

@@ -21,7 +21,7 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
   """JSON streaming storage writer."""
 
   def __init__(self, output_file=None, event_filter=None,
-               consolidated_timestamps=False):
+               consolidated_timestamps=False, relative_paths=False):
     """Initializes a JSON streaming storage writer.
 
     Args:
@@ -32,13 +32,16 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
       consolidated_timestamps (Optional[bool]): True if timestamps should be
           included as separate fields in the output (one event per record
           with all timestamps).
+      relative_paths (Optional[bool]): True if file paths should be reported
+          relative to the source path instead of as absolute paths.
     """
     super(JSONStreamingStorageWriter, self).__init__()
     self._output_file = output_file
     self._serializer = json_serializer.JSONAttributeContainerSerializer()
     self._field_formatting_helper = shared_json.JSONFieldFormattingHelper()
     self._json_encoder = json.JSONEncoder(ensure_ascii=False, sort_keys=True)
-    self._output_mediator = mediator.OutputMediator(storage_reader=self)
+    self._output_mediator = mediator.OutputMediator(
+        storage_reader=self, relative_paths=relative_paths)
     self._event_filter = event_filter
     self._consolidated_timestamps = consolidated_timestamps
     

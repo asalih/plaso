@@ -91,6 +91,7 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     self.list_hashers = False
     self.list_parsers_and_plugins = False
     self.list_profilers = False
+    self.relative_paths = False
     self.show_info = False
     self.json_stdout = False
     self.http_endpoint = None
@@ -218,6 +219,14 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
             'and change_time as separate columns in a single event. '
             'Only works with --json-stdout or --http-endpoint.'))
 
+    info_group.add_argument(
+        '--relative_paths', '--relative-paths', action='store_true',
+        dest='relative_paths', default=False, help=(
+            'Report file paths relative to the source path instead of '
+            'absolute paths. This makes the output more portable and easier '
+            'to read when processing directories. '
+            'Only works with --json-stdout or --http-endpoint.'))
+
     self.AddLogFileOptions(info_group)
 
     helpers_manager.ArgumentHelperManager.AddCommandLineArguments(
@@ -304,12 +313,20 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     self.http_endpoint = getattr(options, 'http_endpoint', None)
     self.consolidated_timestamps = getattr(
         options, 'consolidated_timestamps', False)
+    self.relative_paths = getattr(options, 'relative_paths', False)
     
     # Validate consolidated_timestamps usage
     if self.consolidated_timestamps:
       if not (self.json_stdout or self.http_endpoint):
         raise errors.BadConfigOption(
             '--consolidated-timestamps can only be used with --json-stdout '
+            'or --http-endpoint.')
+    
+    # Validate relative_paths usage
+    if self.relative_paths:
+      if not (self.json_stdout or self.http_endpoint):
+        raise errors.BadConfigOption(
+            '--relative-paths can only be used with --json-stdout '
             'or --http-endpoint.')
     
     # Parse event filter for streaming modes

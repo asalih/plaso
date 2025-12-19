@@ -760,9 +760,11 @@ class ExtractionTool(
       # Create a custom JSON streaming storage writer
       event_filter_object = getattr(self, '_event_filter', None)
       consolidated_timestamps = getattr(self, 'consolidated_timestamps', False)
+      relative_paths = getattr(self, 'relative_paths', False)
       storage_writer = JSONStreamingStorageWriter(
           event_filter=event_filter_object,
-          consolidated_timestamps=consolidated_timestamps)
+          consolidated_timestamps=consolidated_timestamps,
+          relative_paths=relative_paths)
       try:
         storage_writer.Open()
       except IOError as exception:
@@ -771,9 +773,11 @@ class ExtractionTool(
       # Create an HTTP streaming storage writer
       event_filter_object = getattr(self, '_event_filter', None)
       consolidated_timestamps = getattr(self, 'consolidated_timestamps', False)
+      relative_paths = getattr(self, 'relative_paths', False)
       storage_writer = HTTPStreamingStorageWriter(
           http_endpoint, event_filter=event_filter_object,
-          consolidated_timestamps=consolidated_timestamps)
+          consolidated_timestamps=consolidated_timestamps,
+          relative_paths=relative_paths)
       try:
         storage_writer.Open()
       except IOError as exception:

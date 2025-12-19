@@ -31,7 +31,7 @@ class OutputMediator(object):
 
   def __init__(
       self, storage_reader, data_location=None, dynamic_time=False,
-      preferred_encoding='utf-8'):
+      preferred_encoding='utf-8', relative_paths=False):
     """Initializes an output mediator.
 
     Args:
@@ -40,6 +40,8 @@ class OutputMediator(object):
       dynamic_time (Optional[bool]): True if date and time values should be
           represented in their granularity or semantically.
       preferred_encoding (Optional[str]): preferred encoding to output.
+      relative_paths (Optional[bool]): True if file paths should be reported
+          relative to the source path.
     """
     super(OutputMediator, self).__init__()
     self._dynamic_time = dynamic_time
@@ -48,7 +50,9 @@ class OutputMediator(object):
     self._lcid = None
     self._message_formatters = {}
     self._preferred_encoding = preferred_encoding
+    self._relative_paths = relative_paths
     self._source_mappings = {}
+    self._source_path = None
     self._storage_reader = storage_reader
     self._system_configurations = None
     self._time_zone = None
@@ -122,6 +126,20 @@ class OutputMediator(object):
 
     return user_accounts[0]
 
+  def _GetSourcePath(self):
+    """Retrieves the source path from storage.
+
+    Returns:
+      str: source path or None if not available.
+    """
+    if self._source_path is None:
+      source_configurations = list(self._storage_reader.GetAttributeContainers(
+          'source_configuration'))
+      if source_configurations:
+        self._source_path = source_configurations[0].path
+
+    return self._source_path
+
   def GetDisplayNameForPathSpec(self, path_spec):
     """Retrieves the display name for a path specification.
 
@@ -131,7 +149,31 @@ class OutputMediator(object):
     Returns:
       str: human readable version of the path specification.
     """
-    return path_helper.PathHelper.GetDisplayNameForPathSpec(path_spec)
+    display_name = path_helper.PathHelper.GetDisplayNameForPathSpec(path_spec)
+
+    if self._relative_paths and display_name:
+      source_path = self._GetSourcePath()
+      if source_path:
+        # The display name format is "TYPE:path", so we need to handle this
+        type_prefix = ''
+        path_part = display_name
+        if ':' in display_name:
+          colon_index = display_name.find(':')
+          type_prefix = display_name[:colon_index + 1]
+          path_part = display_name[colon_index + 1:]
+
+        # Strip the source path from the path part
+        if path_part.startswith(source_path):
+          relative_path = path_part[len(source_path):]
+          # Remove leading path separator if present
+          if relative_path.startswith('/') or relative_path.startswith('\\'):
+            relative_path = relative_path[1:]
+          # If the path is empty after stripping, use '.' to represent current
+          if not relative_path:
+            relative_path = '.'
+          display_name = type_prefix + relative_path
+
+    return display_name
 
   def GetHostname(self, event_data, default_hostname='-'):
     """Retrieves the hostname related to the event.
@@ -296,9 +338,22 @@ class OutputMediator(object):
       path_spec (dfvfs.PathSpec): path specification.
 
     Returns:
-      str: relateive path of the path specification.
+      str: relative path of the path specification.
     """
-    return path_helper.PathHelper.GetRelativePathForPathSpec(path_spec)
+    relative_path = path_helper.PathHelper.GetRelativePathForPathSpec(path_spec)
+
+    if self._relative_paths and relative_path:
+      source_path = self._GetSourcePath()
+      if source_path and relative_path.startswith(source_path):
+        relative_path = relative_path[len(source_path):]
+        # Remove leading path separator if present
+        if relative_path.startswith('/') or relative_path.startswith('\\'):
+          relative_path = relative_path[1:]
+        # If the path is empty after stripping, use '.' to represent current
+        if not relative_path:
+          relative_path = '.'
+
+    return relative_path
 
   def GetSourceMapping(self, data_type):
     """Retrieves the source mapping for a specific data type.
