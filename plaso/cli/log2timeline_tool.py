@@ -131,7 +131,12 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
         '--storage_file', '--storage-file', dest='storage_file', metavar='PATH',
         type=str, default=None, help=(
             'The path of the storage file. If not specified, one will be made '
-            'in the form <timestamp>-<source>.plaso'))
+            'in the form <timestamp>-<source>.plaso. When using --json-stdout '
+            'or --http-endpoint, this file is used as intermediate storage; '
+            'if not specified, a temporary file will be created. '
+            'WARNING: Reusing the same storage file across multiple runs with '
+            'streaming modes may produce inconsistent results due to event '
+            'deduplication and caching. Use a fresh storage file for each run.'))
 
   def ParseArguments(self, arguments):
     """Parses the command line arguments.
@@ -194,14 +199,14 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
         '--json-stdout', dest='json_stdout', action='store_true', 
         default=False, help=(
             'Output events as JSON to stdout instead of creating a .plaso file. '
-            'When this option is used, the storage_file argument is ignored.'))
+            'Use --storage-file to specify intermediate storage location.'))
 
     info_group.add_argument(
         '--http-endpoint', dest='http_endpoint', type=str, metavar='URL',
         help=(
             'Send events as JSON to the specified HTTP endpoint instead of '
             'creating a .plaso file. Format: http://host:port/path. '
-            'When this option is used, the storage_file argument is ignored.'))
+            'Use --storage-file to specify intermediate storage location.'))
 
     info_group.add_argument(
         '--event-filter', dest='event_filter', type=str, metavar='FILTER',
@@ -412,9 +417,11 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     self._ParsePerformanceOptions(options)
     self._ParseProcessingOptions(options)
 
-    # Handle storage file for normal mode (not JSON stdout or HTTP endpoint)
+    # Handle storage file - also allow specifying it for streaming modes
+    self._storage_file_path = self.ParseStringOption(options, 'storage_file')
+    
     if not self.json_stdout and not self.http_endpoint:
-      self._storage_file_path = self.ParseStringOption(options, 'storage_file')
+      # Normal mode requires a storage file
       if not self._storage_file_path:
         self._storage_file_path = self._GenerateStorageFileName()
 
@@ -427,9 +434,8 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
         raise errors.BadConfigOption(
             f'Unsupported storage serializer format: {serializer_format:s}')
       self._storage_serializer_format = serializer_format
-    else:
-      # For JSON stdout or HTTP endpoint mode, we don't need a storage file
-      self._storage_file_path = None
+    # For streaming modes, storage_file_path is optional (if not provided,
+    # a temp file will be created)
 
     helpers_manager.ArgumentHelperManager.ParseOptions(
         options, self, names=['status_view'])

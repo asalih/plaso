@@ -18,7 +18,8 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
 
   def __init__(self, endpoint_url, batch_size=100, flush_interval=5.0, 
                max_retries=3, headers=None, event_filter=None,
-               consolidated_timestamps=False, relative_paths=False):
+               consolidated_timestamps=False, relative_paths=False,
+               storage_file_path=None, deduplicate_events=False):
     """Initializes an HTTP streaming storage writer.
 
     Args:
@@ -36,11 +37,17 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
           with all timestamps).
       relative_paths (Optional[bool]): True if file paths should be reported
           relative to the source path instead of as absolute paths.
+      storage_file_path (Optional[str]): path to the storage file. If None,
+          a temporary file will be created.
+      deduplicate_events (Optional[bool]): True if events should be 
+          deduplicated when streaming. Default is False.
     """
     super(HTTPStreamingStorageWriter, self).__init__(
         event_filter=event_filter,
         consolidated_timestamps=consolidated_timestamps,
-        relative_paths=relative_paths)
+        relative_paths=relative_paths,
+        storage_file_path=storage_file_path,
+        deduplicate_events=deduplicate_events)
     
     # Validate URL
     parsed_url = urlparse(endpoint_url)
@@ -121,33 +128,51 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
     Args:
       container (AttributeContainer): attribute container.
     """
-    if container.CONTAINER_TYPE == 'event':
+    # Cache event_data and event_data_stream containers for later lookup
+    # This avoids race conditions with SQLite write cache
+    if container.CONTAINER_TYPE == 'event_data':
+      identifier = container.GetIdentifier()
+      if identifier:
+        identifier_string = identifier.CopyToString()
+        self._event_data_cache[identifier_string] = container
+    elif container.CONTAINER_TYPE == 'event_data_stream':
+      identifier = container.GetIdentifier()
+      if identifier:
+        identifier_string = identifier.CopyToString()
+        self._event_data_stream_cache[identifier_string] = container
+    elif container.CONTAINER_TYPE == 'event':
       event = container
       event_data = None
       event_data_stream = None
       event_tag = None
 
-      # Get event data
+      # Get event data from local cache first, then fall back to storage
       if hasattr(event, 'GetEventDataIdentifier'):
         event_data_identifier = event.GetEventDataIdentifier()
         if event_data_identifier:
-          try:
-            event_data = self._real_storage_writer.GetAttributeContainerByIdentifier(
-                'event_data', event_data_identifier)
-          except Exception:
-            pass
+          identifier_string = event_data_identifier.CopyToString()
+          event_data = self._event_data_cache.get(identifier_string)
+          if not event_data:
+            try:
+              event_data = self._real_storage_writer.GetAttributeContainerByIdentifier(
+                  'event_data', event_data_identifier)
+            except Exception:
+              pass
 
-      # Get event data stream
+      # Get event data stream from local cache first, then fall back to storage
       if event_data and hasattr(event_data, 'GetEventDataStreamIdentifier'):
         event_data_stream_identifier = event_data.GetEventDataStreamIdentifier()
         if event_data_stream_identifier:
-          try:
-            event_data_stream = self._real_storage_writer.GetAttributeContainerByIdentifier(
-                'event_data_stream', event_data_stream_identifier)
-          except Exception:
-            pass
+          identifier_string = event_data_stream_identifier.CopyToString()
+          event_data_stream = self._event_data_stream_cache.get(identifier_string)
+          if not event_data_stream:
+            try:
+              event_data_stream = self._real_storage_writer.GetAttributeContainerByIdentifier(
+                  'event_data_stream', event_data_stream_identifier)
+            except Exception:
+              pass
 
-      # Get event tag
+      # Get event tag (no caching needed, rarely used)
       if hasattr(event, 'GetEventTagIdentifier'):
         event_tag_identifier = event.GetEventTagIdentifier()
         if event_tag_identifier:
@@ -170,6 +195,28 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
           # If filtering fails, include the event to be safe
           pass
 
+      # Deduplication check: skip events we've already seen
+      # The _event_values_hash is stored on event_data, not event
+      # We need to combine it with timestamp AND timestamp_desc from event
+      # because the hash excludes datetime values, so events with same hash
+      # but different timestamps would incorrectly be considered duplicates
+      if self._deduplicate_events and event_data:
+        event_values_hash = getattr(event_data, '_event_values_hash', None)
+        if event_values_hash:
+          # Include timestamp value in the key because hash excludes datetime values
+          timestamp = getattr(event, 'timestamp', 0)
+          timestamp_desc = getattr(event, 'timestamp_desc', '')
+          dedup_key = (event_values_hash, timestamp, timestamp_desc)
+          
+          if dedup_key in self._seen_event_keys:
+            # Duplicate event, skip streaming but still write to storage
+            self._duplicates_skipped += 1
+            self._real_storage_writer.AddAttributeContainer(container)
+            return
+          
+          # Remember this key for future deduplication
+          self._seen_event_keys.add(dedup_key)
+
       # Get field values using parent's method
       field_values = self._GetFieldValues(
           event, event_data, event_data_stream, event_tag)
@@ -177,6 +224,7 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
       # Queue the event for HTTP sending instead of printing to stdout
       try:
         self._event_queue.put(field_values, timeout=1.0)
+        self._events_streamed += 1
       except queue.Full:
         logging.warning('Event queue full, dropping event')
         self._events_failed += 1

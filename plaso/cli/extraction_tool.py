@@ -764,7 +764,8 @@ class ExtractionTool(
       storage_writer = JSONStreamingStorageWriter(
           event_filter=event_filter_object,
           consolidated_timestamps=consolidated_timestamps,
-          relative_paths=relative_paths)
+          relative_paths=relative_paths,
+          storage_file_path=self._storage_file_path)
       try:
         storage_writer.Open()
       except IOError as exception:
@@ -777,7 +778,8 @@ class ExtractionTool(
       storage_writer = HTTPStreamingStorageWriter(
           http_endpoint, event_filter=event_filter_object,
           consolidated_timestamps=consolidated_timestamps,
-          relative_paths=relative_paths)
+          relative_paths=relative_paths,
+          storage_file_path=self._storage_file_path)
       try:
         storage_writer.Open()
       except IOError as exception:

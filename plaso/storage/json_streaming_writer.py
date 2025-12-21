@@ -2,6 +2,7 @@
 """JSON streaming storage writer for outputting events directly to stdout."""
 
 import json
+import logging
 import os
 import tempfile
 import uuid
@@ -21,7 +22,8 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
   """JSON streaming storage writer."""
 
   def __init__(self, output_file=None, event_filter=None,
-               consolidated_timestamps=False, relative_paths=False):
+               consolidated_timestamps=False, relative_paths=False,
+               storage_file_path=None, deduplicate_events=False):
     """Initializes a JSON streaming storage writer.
 
     Args:
@@ -34,6 +36,13 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
           with all timestamps).
       relative_paths (Optional[bool]): True if file paths should be reported
           relative to the source path instead of as absolute paths.
+      storage_file_path (Optional[str]): path to the storage file. If None,
+          a temporary file will be created.
+      deduplicate_events (Optional[bool]): True if events should be 
+          deduplicated when streaming. Default is False because streaming
+          deduplication across runs is complex and may not match psort's
+          behavior. Use psort with -a/--include-all if you need control
+          over deduplication.
     """
     super(JSONStreamingStorageWriter, self).__init__()
     self._output_file = output_file
@@ -45,11 +54,30 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
     self._event_filter = event_filter
     self._consolidated_timestamps = consolidated_timestamps
     
-    # Create a temporary file for the real storage
-    self._temp_file = tempfile.NamedTemporaryFile(suffix='.plaso', delete=False)
-    self._temp_file.close()
+    # Local caches to avoid race conditions with SQLite write cache
+    # These store containers by their identifier string for fast lookup
+    self._event_data_cache = {}
+    self._event_data_stream_cache = {}
     
-    # Create a real storage writer that writes to the temp file
+    # Deduplication: OFF by default for streaming
+    # Streaming deduplication is complex and may not match psort's behavior
+    # which deduplicates consecutive sorted events
+    self._seen_event_keys = set()
+    self._deduplicate_events = deduplicate_events
+    self._duplicates_skipped = 0
+    self._events_streamed = 0
+    
+    # Use provided storage file path or create a temporary file
+    if storage_file_path:
+      self._storage_file_path = storage_file_path
+      self._using_temp_file = False
+    else:
+      self._temp_file = tempfile.NamedTemporaryFile(suffix='.plaso', delete=False)
+      self._temp_file.close()
+      self._storage_file_path = self._temp_file.name
+      self._using_temp_file = True
+    
+    # Create a real storage writer that writes to the storage file
     self._real_storage_writer = storage_factory.StorageFactory.CreateStorageWriter(
         'sqlite')
     
@@ -63,24 +91,100 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
     
   def Open(self, path=None, **kwargs):
     """Opens the storage writer."""
-    self._real_storage_writer.Open(path=self._temp_file.name)
+    self._real_storage_writer.Open(path=self._storage_file_path)
     
     # Set _store to satisfy the base class _RaiseIfNotWritable check
     self._store = self._real_storage_writer._store
+    
+    # Load existing event keys for deduplication when reusing storage file
+    if self._deduplicate_events and not self._using_temp_file:
+      self._LoadExistingEventKeys()
+
+  def _LoadExistingEventKeys(self):
+    """Loads existing event keys from storage for deduplication.
+    
+    This reads all existing events and event_data from storage and builds a set of
+    (event_values_hash, timestamp, timestamp_desc) tuples to detect duplicates.
+    The hash is stored on event_data, and timestamp/timestamp_desc are on event.
+    We include the timestamp because the hash excludes datetime values.
+    """
+    try:
+      # First, build a map of event_data identifier to hash
+      event_data_hash_map = {}
+      num_event_data = self._real_storage_writer.GetNumberOfAttributeContainers('event_data')
+      
+      if num_event_data == 0:
+        logging.info('Deduplication: No existing event_data found in storage')
+        return
+      
+      logging.info(f'Deduplication: Loading from {num_event_data} existing event_data')
+      
+      for event_data in self._real_storage_writer.GetAttributeContainers('event_data'):
+        event_values_hash = getattr(event_data, '_event_values_hash', None)
+        if event_values_hash:
+          identifier = event_data.GetIdentifier()
+          if identifier:
+            event_data_hash_map[identifier.CopyToString()] = event_values_hash
+      
+      logging.info(f'Deduplication: Found {len(event_data_hash_map)} event_data with hashes')
+      
+      # Now read events and combine with their event_data hash
+      num_events = self._real_storage_writer.GetNumberOfAttributeContainers('event')
+      if num_events == 0:
+        logging.info('Deduplication: No existing events found in storage')
+        return
+      
+      logging.info(f'Deduplication: Loading from {num_events} existing events')
+      
+      loaded_count = 0
+      for event in self._real_storage_writer.GetAttributeContainers('event'):
+        timestamp = getattr(event, 'timestamp', 0)
+        timestamp_desc = getattr(event, 'timestamp_desc', '')
+        
+        # Get the event_data identifier from the event
+        event_data_identifier = None
+        if hasattr(event, 'GetEventDataIdentifier'):
+          event_data_identifier = event.GetEventDataIdentifier()
+        
+        if event_data_identifier:
+          identifier_string = event_data_identifier.CopyToString()
+          event_values_hash = event_data_hash_map.get(identifier_string)
+          if event_values_hash:
+            # Include timestamp in key because hash excludes datetime values
+            dedup_key = (event_values_hash, timestamp, timestamp_desc)
+            self._seen_event_keys.add(dedup_key)
+            loaded_count += 1
+      
+      logging.info(f'Deduplication: Loaded {loaded_count} event keys for deduplication')
+    except Exception as e:
+      # If loading fails, log the error and continue without deduplication history
+      logging.warning(f'Deduplication: Failed to load existing hashes: {e}')
 
   def Close(self):
-    """Closes the storage writer and cleans up temp file."""
+    """Closes the storage writer and cleans up temp file if used."""
+    # Log deduplication stats before closing
+    logging.info(
+        f'Deduplication stats: {self._events_streamed} events streamed, '
+        f'{self._duplicates_skipped} duplicates skipped, '
+        f'{len(self._seen_event_keys)} unique hashes tracked')
+    
     if self._real_storage_writer:
       self._real_storage_writer.Close()
       
     # Clear _store to satisfy base class
     self._store = None
+    
+    # Clear deduplication cache and counters
+    self._seen_event_keys.clear()
+    self._duplicates_skipped = 0
+    self._events_streamed = 0
       
-    # Clean up temp file
-    try:
-      os.unlink(self._temp_file.name)
-    except OSError:
-      pass
+    # Clean up temp file only if we created one
+    if self._using_temp_file:
+      try:
+        os.unlink(self._storage_file_path)
+      except OSError:
+        pass
     
   def _GetFieldValues(self, event, event_data, event_data_stream, event_tag):
     """Retrieves the output field values.
@@ -280,33 +384,51 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
     Args:
       container (AttributeContainer): attribute container.
     """
-    if container.CONTAINER_TYPE == 'event':
+    # Cache event_data and event_data_stream containers for later lookup
+    # This avoids race conditions with SQLite write cache
+    if container.CONTAINER_TYPE == 'event_data':
+      identifier = container.GetIdentifier()
+      if identifier:
+        identifier_string = identifier.CopyToString()
+        self._event_data_cache[identifier_string] = container
+    elif container.CONTAINER_TYPE == 'event_data_stream':
+      identifier = container.GetIdentifier()
+      if identifier:
+        identifier_string = identifier.CopyToString()
+        self._event_data_stream_cache[identifier_string] = container
+    elif container.CONTAINER_TYPE == 'event':
       event = container
       event_data = None
       event_data_stream = None
       event_tag = None
 
-      # Get event data
+      # Get event data from local cache first, then fall back to storage
       if hasattr(event, 'GetEventDataIdentifier'):
         event_data_identifier = event.GetEventDataIdentifier()
         if event_data_identifier:
-          try:
-            event_data = self._real_storage_writer.GetAttributeContainerByIdentifier(
-                'event_data', event_data_identifier)
-          except Exception:
-            pass
+          identifier_string = event_data_identifier.CopyToString()
+          event_data = self._event_data_cache.get(identifier_string)
+          if not event_data:
+            try:
+              event_data = self._real_storage_writer.GetAttributeContainerByIdentifier(
+                  'event_data', event_data_identifier)
+            except Exception:
+              pass
 
-      # Get event data stream
+      # Get event data stream from local cache first, then fall back to storage
       if event_data and hasattr(event_data, 'GetEventDataStreamIdentifier'):
         event_data_stream_identifier = event_data.GetEventDataStreamIdentifier()
         if event_data_stream_identifier:
-          try:
-            event_data_stream = self._real_storage_writer.GetAttributeContainerByIdentifier(
-                'event_data_stream', event_data_stream_identifier)
-          except Exception:
-            pass
+          identifier_string = event_data_stream_identifier.CopyToString()
+          event_data_stream = self._event_data_stream_cache.get(identifier_string)
+          if not event_data_stream:
+            try:
+              event_data_stream = self._real_storage_writer.GetAttributeContainerByIdentifier(
+                  'event_data_stream', event_data_stream_identifier)
+            except Exception:
+              pass
 
-      # Get event tag
+      # Get event tag (no caching needed, rarely used)
       if hasattr(event, 'GetEventTagIdentifier'):
         event_tag_identifier = event.GetEventTagIdentifier()
         if event_tag_identifier:
@@ -329,6 +451,28 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
           # If filtering fails, include the event to be safe
           pass
 
+      # Deduplication check: skip events we've already seen
+      # The _event_values_hash is stored on event_data, not event
+      # We need to combine it with timestamp AND timestamp_desc from event
+      # because the hash excludes datetime values, so events with same hash
+      # but different timestamps would incorrectly be considered duplicates
+      if self._deduplicate_events and event_data:
+        event_values_hash = getattr(event_data, '_event_values_hash', None)
+        if event_values_hash:
+          # Include timestamp value in the key because hash excludes datetime values
+          timestamp = getattr(event, 'timestamp', 0)
+          timestamp_desc = getattr(event, 'timestamp_desc', '')
+          dedup_key = (event_values_hash, timestamp, timestamp_desc)
+          
+          if dedup_key in self._seen_event_keys:
+            # Duplicate event, skip streaming but still write to storage
+            self._duplicates_skipped += 1
+            self._real_storage_writer.AddAttributeContainer(container)
+            return
+          
+          # Remember this key for future deduplication
+          self._seen_event_keys.add(dedup_key)
+
       # Get field values
       field_values = self._GetFieldValues(
           event, event_data, event_data_stream, event_tag)
@@ -336,6 +480,7 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
       try:
         json_string = self._json_encoder.encode(field_values)
         print(json_string, flush=True)
+        self._events_streamed += 1
       except Exception:
         # Silently skip events that can't be converted
         pass
