@@ -182,13 +182,18 @@ class FieldFormattingHelper(object):
     Returns:
       str: date field.
     """
-    display_name = getattr(event_data, 'display_name', None)
-    if not display_name:
-      path_spec = getattr(event_data_stream, 'path_spec', None)
-      if path_spec:
-        display_name = output_mediator.GetDisplayNameForPathSpec(path_spec)
-      else:
-        display_name = '-'
+    # If relative_paths is enabled, always derive from path_spec to apply
+    # relative path logic, even if display_name is already set
+    path_spec = getattr(event_data_stream, 'path_spec', None)
+    if path_spec and output_mediator._relative_paths:
+      display_name = output_mediator.GetDisplayNameForPathSpec(path_spec)
+    else:
+      display_name = getattr(event_data, 'display_name', None)
+      if not display_name:
+        if path_spec:
+          display_name = output_mediator.GetDisplayNameForPathSpec(path_spec)
+        else:
+          display_name = '-'
 
     return display_name
 
@@ -209,13 +214,18 @@ class FieldFormattingHelper(object):
     Returns:
       str: date field.
     """
-    filename = getattr(event_data, 'filename', None)
-    if not filename:
-      path_spec = getattr(event_data_stream, 'path_spec', None)
-      if path_spec:
-        filename = output_mediator.GetRelativePathForPathSpec(path_spec)
-      else:
-        filename = '-'
+    # If relative_paths is enabled, always derive from path_spec to apply
+    # relative path logic, even if filename is already set
+    path_spec = getattr(event_data_stream, 'path_spec', None)
+    if path_spec and output_mediator._relative_paths:
+      filename = output_mediator.GetRelativePathForPathSpec(path_spec)
+    else:
+      filename = getattr(event_data, 'filename', None)
+      if not filename:
+        if path_spec:
+          filename = output_mediator.GetRelativePathForPathSpec(path_spec)
+        else:
+          filename = '-'
 
     return filename
 
@@ -315,6 +325,20 @@ class FieldFormattingHelper(object):
       message_formatter = self._DEFAULT_MESSAGE_FORMATTER
 
     event_values = event_data.CopyToDict()
+    
+    # Apply relative path transformations to display_name and filename if enabled
+    if output_mediator._relative_paths and event_data_stream:
+      path_spec = getattr(event_data_stream, 'path_spec', None)
+      if path_spec:
+        # Transform display_name using output mediator's relative path logic
+        if 'display_name' in event_values:
+          event_values['display_name'] = output_mediator.GetDisplayNameForPathSpec(
+              path_spec)
+        # Transform filename using output mediator's relative path logic
+        if 'filename' in event_values:
+          event_values['filename'] = output_mediator.GetRelativePathForPathSpec(
+              path_spec)
+    
     message_formatter.FormatEventValues(output_mediator, event_values)
 
     return message_formatter.GetMessage(event_values)
@@ -342,6 +366,20 @@ class FieldFormattingHelper(object):
       message_formatter = self._DEFAULT_MESSAGE_FORMATTER
 
     event_values = event_data.CopyToDict()
+    
+    # Apply relative path transformations to display_name and filename if enabled
+    if output_mediator._relative_paths and event_data_stream:
+      path_spec = getattr(event_data_stream, 'path_spec', None)
+      if path_spec:
+        # Transform display_name using output mediator's relative path logic
+        if 'display_name' in event_values:
+          event_values['display_name'] = output_mediator.GetDisplayNameForPathSpec(
+              path_spec)
+        # Transform filename using output mediator's relative path logic
+        if 'filename' in event_values:
+          event_values['filename'] = output_mediator.GetRelativePathForPathSpec(
+              path_spec)
+    
     message_formatter.FormatEventValues(output_mediator, event_values)
 
     return message_formatter.GetMessageShort(event_values)

@@ -258,8 +258,22 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
         # Output path_spec as pathspec for backwards compatibility.
         if attribute_name == 'path_spec':
           attribute_name = 'pathspec'
-          attribute_value = self._serializer.WriteSerializedDict(
-              attribute_value)
+          pathspec_dict = self._serializer.WriteSerializedDict(attribute_value)
+          
+          # Apply relative path transformation to pathspec location if enabled
+          if self._output_mediator._relative_paths and pathspec_dict:
+            source_path = self._output_mediator._GetSourcePath()
+            if source_path and 'location' in pathspec_dict:
+              location = pathspec_dict['location']
+              if location and location.startswith(source_path):
+                relative_location = location[len(source_path):]
+                if relative_location.startswith('/') or relative_location.startswith('\\'):
+                  relative_location = relative_location[1:]
+                if not relative_location:
+                  relative_location = '.'
+                pathspec_dict['location'] = relative_location
+          
+          attribute_value = pathspec_dict
 
         field_values[attribute_name] = attribute_value
 
@@ -311,12 +325,12 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
       
       # If message contains the default formatter warning, create a cleaner message
       if '<WARNING DEFAULT FORMATTER>' in message:
-        message = self._CreateCleanMessage(event_data)
+        message = self._CreateCleanMessage(event_data, event_data_stream)
         
       field_values['message'] = message
     except Exception:
       # Fallback to a simple message if formatting fails
-      field_values['message'] = self._CreateCleanMessage(event_data)
+      field_values['message'] = self._CreateCleanMessage(event_data, event_data_stream)
 
     if event_tag:
       event_tag_values = {
@@ -335,11 +349,12 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
 
     return field_values
 
-  def _CreateCleanMessage(self, event_data):
+  def _CreateCleanMessage(self, event_data, event_data_stream=None):
     """Creates a clean message without formatter warnings.
 
     Args:
       event_data (EventData): event data.
+      event_data_stream (EventDataStream): event data stream.
 
     Returns:
       str: clean message.
@@ -368,6 +383,33 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
       if (isinstance(attribute_value, list) and attribute_value and
           isinstance(attribute_value[0], dfdatetime_interface.DateTimeValues)):
         continue
+
+      # Apply relative path transformation for display_name and filename
+      if self._output_mediator._relative_paths and event_data_stream:
+        path_spec = getattr(event_data_stream, 'path_spec', None)
+        if path_spec:
+          if attribute_name == 'display_name':
+            attribute_value = self._output_mediator.GetDisplayNameForPathSpec(
+                path_spec)
+          elif attribute_name == 'filename':
+            attribute_value = self._output_mediator.GetRelativePathForPathSpec(
+                path_spec)
+          elif attribute_name == 'path_hints' and isinstance(attribute_value, list):
+            # Transform path hints
+            source_path = self._output_mediator._GetSourcePath()
+            if source_path:
+              transformed_hints = []
+              for path_hint in attribute_value:
+                if path_hint and path_hint.startswith(source_path):
+                  relative_hint = path_hint[len(source_path):]
+                  if relative_hint.startswith('/') or relative_hint.startswith('\\'):
+                    relative_hint = relative_hint[1:]
+                  if not relative_hint:
+                    relative_hint = '.'
+                  transformed_hints.append(relative_hint)
+                else:
+                  transformed_hints.append(path_hint)
+              attribute_value = transformed_hints
 
       message_parts.append('{0}: {1}'.format(attribute_name, attribute_value))
 

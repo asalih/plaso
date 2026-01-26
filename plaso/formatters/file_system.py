@@ -56,6 +56,23 @@ class NTFSPathHintsFormatterHelper(interface.CustomEventFormatterHelper):
     """
     path_hints = event_values.get('path_hints', None)
     if path_hints:
+      # Apply relative path transformation if enabled
+      if output_mediator._relative_paths:
+        source_path = output_mediator._GetSourcePath()
+        if source_path:
+          transformed_hints = []
+          for path_hint in path_hints:
+            if path_hint and path_hint.startswith(source_path):
+              relative_hint = path_hint[len(source_path):]
+              if relative_hint.startswith('/') or relative_hint.startswith('\\'):
+                relative_hint = relative_hint[1:]
+              if not relative_hint:
+                relative_hint = '.'
+              transformed_hints.append(relative_hint)
+            else:
+              transformed_hints.append(path_hint)
+          path_hints = transformed_hints
+      
       event_values['path_hints'] = ';'.join(path_hints)
 
 
