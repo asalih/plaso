@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """JSON streaming storage writer for outputting events directly to stdout."""
 
+import collections
 import json
 import logging
 import os
@@ -23,7 +24,9 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
 
   def __init__(self, output_file=None, event_filter=None,
                consolidated_timestamps=False, relative_paths=False,
-               storage_file_path=None, deduplicate_events=False):
+               storage_file_path=None, deduplicate_events=False,
+               stream_storage='sqlite', store_events_in_storage=True,
+               max_cached_event_data_containers=100000):
     """Initializes a JSON streaming storage writer.
 
     Args:
@@ -43,6 +46,16 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
           deduplication across runs is complex and may not match psort's
           behavior. Use psort with -a/--include-all if you need control
           over deduplication.
+      stream_storage (Optional[str]): storage backend to use for the intermediate
+          storage required by the extraction engine. Supported values are:
+          "sqlite" (default) and "memory".
+      store_events_in_storage (Optional[bool]): True to store final "event"
+          containers in the intermediate storage. For streaming modes you
+          typically do not need to persist events; disabling this reduces I/O.
+      max_cached_event_data_containers (Optional[int]): maximum number of
+          recently seen event_data and event_data_stream containers to keep in
+          memory for streaming mode lookups. This is an LRU cache to avoid
+          unbounded growth on large sources.
     """
     super(JSONStreamingStorageWriter, self).__init__()
     self._output_file = output_file
@@ -54,10 +67,11 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
     self._event_filter = event_filter
     self._consolidated_timestamps = consolidated_timestamps
     
-    # Local caches to avoid race conditions with SQLite write cache
-    # These store containers by their identifier string for fast lookup
-    self._event_data_cache = {}
-    self._event_data_stream_cache = {}
+    # Local caches to avoid race conditions with SQLite write cache.
+    # Keep these bounded (LRU) to avoid unbounded memory usage on large sources.
+    self._max_cached_event_data_containers = max_cached_event_data_containers
+    self._event_data_cache = collections.OrderedDict()
+    self._event_data_stream_cache = collections.OrderedDict()
     
     # Deduplication: OFF by default for streaming
     # Streaming deduplication is complex and may not match psort's behavior
@@ -66,20 +80,42 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
     self._deduplicate_events = deduplicate_events
     self._duplicates_skipped = 0
     self._events_streamed = 0
+
+    self._stream_storage = stream_storage or 'sqlite'
+    self._store_events_in_storage = store_events_in_storage
     
-    # Use provided storage file path or create a temporary file
-    if storage_file_path:
-      self._storage_file_path = storage_file_path
-      self._using_temp_file = False
+    self._storage_file_path = None
+    self._using_temp_file = False
+    self._temp_file = None
+
+    # Create a real storage writer that backs the extraction engine.
+    #
+    # Note: the extraction engine requires a writable storage writer because it
+    # processes event_data -> event in separate phases. Streaming modes can
+    # still choose how that intermediate storage is backed (on-disk vs memory).
+    if self._stream_storage == 'sqlite':
+      # Use provided storage file path or create a temporary file.
+      if storage_file_path:
+        self._storage_file_path = storage_file_path
+        self._using_temp_file = False
+      else:
+        self._temp_file = tempfile.NamedTemporaryFile(
+            suffix='.plaso', delete=False)
+        self._temp_file.close()
+        self._storage_file_path = self._temp_file.name
+        self._using_temp_file = True
+
+      self._real_storage_writer = (
+          storage_factory.StorageFactory.CreateStorageWriter('sqlite'))
+
+    elif self._stream_storage == 'memory':
+      # Keep the required intermediate storage entirely in memory.
+      # WARNING: This can use a significant amount of RAM on large sources.
+      from plaso.storage.fake import writer as fake_writer  # pylint: disable=import-outside-toplevel
+      self._real_storage_writer = fake_writer.FakeStorageWriter()
+
     else:
-      self._temp_file = tempfile.NamedTemporaryFile(suffix='.plaso', delete=False)
-      self._temp_file.close()
-      self._storage_file_path = self._temp_file.name
-      self._using_temp_file = True
-    
-    # Create a real storage writer that writes to the storage file
-    self._real_storage_writer = storage_factory.StorageFactory.CreateStorageWriter(
-        'sqlite')
+      raise ValueError(f'Unsupported stream storage backend: {self._stream_storage!s}')
     
     # Set _store to the real storage writer's store to satisfy base class checks
     self._store = None  # Will be set in Open()
@@ -91,13 +127,17 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
     
   def Open(self, path=None, **kwargs):
     """Opens the storage writer."""
-    self._real_storage_writer.Open(path=self._storage_file_path)
+    if self._stream_storage == 'sqlite':
+      self._real_storage_writer.Open(path=self._storage_file_path)
+    else:
+      self._real_storage_writer.Open()
     
     # Set _store to satisfy the base class _RaiseIfNotWritable check
     self._store = self._real_storage_writer._store
     
     # Load existing event keys for deduplication when reusing storage file
-    if self._deduplicate_events and not self._using_temp_file:
+    if (self._deduplicate_events and self._stream_storage == 'sqlite' and
+        not self._using_temp_file):
       self._LoadExistingEventKeys()
 
   def _LoadExistingEventKeys(self):
@@ -179,8 +219,8 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
     self._duplicates_skipped = 0
     self._events_streamed = 0
       
-    # Clean up temp file only if we created one
-    if self._using_temp_file:
+    # Clean up temp file only if we created one (sqlite backend only).
+    if self._stream_storage == 'sqlite' and self._using_temp_file:
       try:
         os.unlink(self._storage_file_path)
       except OSError:
@@ -433,11 +473,19 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
       if identifier:
         identifier_string = identifier.CopyToString()
         self._event_data_cache[identifier_string] = container
+        self._event_data_cache.move_to_end(identifier_string, last=True)
+        if (self._max_cached_event_data_containers and
+            len(self._event_data_cache) > self._max_cached_event_data_containers):
+          self._event_data_cache.popitem(last=False)
     elif container.CONTAINER_TYPE == 'event_data_stream':
       identifier = container.GetIdentifier()
       if identifier:
         identifier_string = identifier.CopyToString()
         self._event_data_stream_cache[identifier_string] = container
+        self._event_data_stream_cache.move_to_end(identifier_string, last=True)
+        if (self._max_cached_event_data_containers and
+            len(self._event_data_stream_cache) > self._max_cached_event_data_containers):
+          self._event_data_stream_cache.popitem(last=False)
     elif container.CONTAINER_TYPE == 'event':
       event = container
       event_data = None
@@ -450,6 +498,8 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
         if event_data_identifier:
           identifier_string = event_data_identifier.CopyToString()
           event_data = self._event_data_cache.get(identifier_string)
+          if event_data:
+            self._event_data_cache.move_to_end(identifier_string, last=True)
           if not event_data:
             try:
               event_data = self._real_storage_writer.GetAttributeContainerByIdentifier(
@@ -463,6 +513,9 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
         if event_data_stream_identifier:
           identifier_string = event_data_stream_identifier.CopyToString()
           event_data_stream = self._event_data_stream_cache.get(identifier_string)
+          if event_data_stream:
+            self._event_data_stream_cache.move_to_end(
+                identifier_string, last=True)
           if not event_data_stream:
             try:
               event_data_stream = self._real_storage_writer.GetAttributeContainerByIdentifier(
@@ -527,7 +580,15 @@ class JSONStreamingStorageWriter(storage_writer.StorageWriter):
         # Silently skip events that can't be converted
         pass
 
-    # Forward to real storage writer
+    # Forward to real storage writer.
+    #
+    # Streaming modes usually do not need to persist final "event" containers,
+    # but the extraction engine does require intermediate containers such as
+    # event_data, event_data_stream and event_source.
+    if (not self._store_events_in_storage and
+        container.CONTAINER_TYPE in ('event', 'event_tag')):
+      return
+
     self._real_storage_writer.AddAttributeContainer(container)
     
   def UpdateAttributeContainer(self, container):

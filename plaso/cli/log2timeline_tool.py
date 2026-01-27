@@ -209,6 +209,31 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
             'Use --storage-file to specify intermediate storage location.'))
 
     info_group.add_argument(
+        '--http-gzip', dest='http_gzip', action='store_true', default=False,
+        help=(
+            'Compress HTTP request bodies with gzip when using --http-endpoint. '
+            'This reduces bandwidth and can improve throughput if the receiver '
+            'supports gzip (Content-Encoding: gzip).'))
+
+    info_group.add_argument(
+        '--stream-storage', dest='stream_storage', type=str, metavar='BACKEND',
+        choices=['sqlite', 'memory'], default='sqlite', help=(
+            'Storage backend for streaming modes (intermediate storage required '
+            'by the extraction engine). "sqlite" uses an on-disk SQLite file '
+            '(default). "memory" keeps the intermediate storage in RAM '
+            '(may use a lot of memory on large sources). Only works with '
+            '--json-stdout or --http-endpoint.'))
+
+    info_group.add_argument(
+        '--no-stream-events-storage', dest='no_stream_events_storage',
+        action='store_true', default=False, help=(
+            'Do not store final event containers in the intermediate storage '
+            'when using streaming modes. This reduces disk I/O and can improve '
+            'performance, but the resulting storage file (if provided via '
+            '--storage-file) will not contain events. Only works with '
+            '--json-stdout or --http-endpoint.'))
+
+    info_group.add_argument(
         '--event-filter', dest='event_filter', type=str, metavar='FILTER',
         help=(
             'Filter events by expression (for streaming modes only). '
@@ -316,9 +341,13 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
     # Parse the JSON stdout and HTTP endpoint options first
     self.json_stdout = getattr(options, 'json_stdout', False)
     self.http_endpoint = getattr(options, 'http_endpoint', None)
+    self.http_gzip = getattr(options, 'http_gzip', False)
     self.consolidated_timestamps = getattr(
         options, 'consolidated_timestamps', False)
     self.relative_paths = getattr(options, 'relative_paths', False)
+    self.stream_storage = getattr(options, 'stream_storage', 'sqlite')
+    self.store_events_in_storage = not getattr(
+        options, 'no_stream_events_storage', False)
     
     # Validate consolidated_timestamps usage
     if self.consolidated_timestamps:
@@ -333,6 +362,18 @@ class Log2TimelineTool(extraction_tool.ExtractionTool):
         raise errors.BadConfigOption(
             '--relative-paths can only be used with --json-stdout '
             'or --http-endpoint.')
+
+    # Validate streaming storage options usage.
+    if (self.stream_storage != 'sqlite' or not self.store_events_in_storage):
+      if not (self.json_stdout or self.http_endpoint):
+        raise errors.BadConfigOption(
+            '--stream-storage and --no-stream-events-storage can only be used '
+            'with --json-stdout or --http-endpoint.')
+
+    # Validate HTTP gzip option usage.
+    if self.http_gzip and not self.http_endpoint:
+      raise errors.BadConfigOption(
+          '--http-gzip can only be used with --http-endpoint.')
     
     # Parse event filter for streaming modes
     event_filter_expression = getattr(options, 'event_filter', None)

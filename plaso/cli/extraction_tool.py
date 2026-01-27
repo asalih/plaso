@@ -761,11 +761,15 @@ class ExtractionTool(
       event_filter_object = getattr(self, '_event_filter', None)
       consolidated_timestamps = getattr(self, 'consolidated_timestamps', False)
       relative_paths = getattr(self, 'relative_paths', False)
+      stream_storage = getattr(self, 'stream_storage', 'sqlite')
+      store_events_in_storage = getattr(self, 'store_events_in_storage', True)
       storage_writer = JSONStreamingStorageWriter(
           event_filter=event_filter_object,
           consolidated_timestamps=consolidated_timestamps,
           relative_paths=relative_paths,
-          storage_file_path=self._storage_file_path)
+          storage_file_path=self._storage_file_path,
+          stream_storage=stream_storage,
+          store_events_in_storage=store_events_in_storage)
       try:
         storage_writer.Open()
       except IOError as exception:
@@ -775,11 +779,17 @@ class ExtractionTool(
       event_filter_object = getattr(self, '_event_filter', None)
       consolidated_timestamps = getattr(self, 'consolidated_timestamps', False)
       relative_paths = getattr(self, 'relative_paths', False)
+      stream_storage = getattr(self, 'stream_storage', 'sqlite')
+      store_events_in_storage = getattr(self, 'store_events_in_storage', True)
+      compress_payload = getattr(self, 'http_gzip', False)
       storage_writer = HTTPStreamingStorageWriter(
           http_endpoint, event_filter=event_filter_object,
           consolidated_timestamps=consolidated_timestamps,
           relative_paths=relative_paths,
-          storage_file_path=self._storage_file_path)
+          storage_file_path=self._storage_file_path,
+          stream_storage=stream_storage,
+          store_events_in_storage=store_events_in_storage,
+          compress_payload=compress_payload)
       try:
         storage_writer.Open()
       except IOError as exception:
