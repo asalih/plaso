@@ -19,6 +19,8 @@ from plaso import analyzers  # pylint: disable=unused-import
 # The following import makes sure the parsers are registered.
 from plaso import parsers  # pylint: disable=unused-import
 
+from dfdatetime import time_elements
+
 from plaso.cli import logger
 from plaso.cli import status_view
 from plaso.cli import storage_media_tool
@@ -93,6 +95,8 @@ class ExtractionTool(
     self._expanded_parser_filter_expression = None
     self._extract_winevt_resources = True
     self._extract_winreg_binary = True
+    self._file_date_end = None
+    self._file_date_start = None
     self._number_of_extraction_workers = 0
     self._parser_filter_expression = None
     self._preferred_codepage = None
@@ -101,6 +105,7 @@ class ExtractionTool(
     self._preferred_year = None
     self._presets_file = None
     self._presets_manager = parsers_presets.ParserPresetsManager()
+    self._max_file_size = None
     self._process_compressed_streams = True
     self._process_memory_limit = None
     self._queue_size = self._DEFAULT_QUEUE_SIZE
@@ -199,6 +204,9 @@ class ExtractionTool(
         self._extract_winevt_resources)
     configuration.extraction.extract_winreg_binary = self._extract_winreg_binary
     configuration.extraction.hasher_names_string = self._hasher_names_string
+    configuration.extraction.file_date_end = self._file_date_end
+    configuration.extraction.file_date_start = self._file_date_start
+    configuration.extraction.max_file_size = self._max_file_size
     configuration.extraction.process_compressed_streams = (
         self._process_compressed_streams)
     configuration.extraction.yara_rules_string = self._yara_rules_string
@@ -375,6 +383,39 @@ class ExtractionTool(
       BadConfigOption: if the options are invalid.
     """
     self._single_process_mode = getattr(options, 'single_process', False)
+
+    max_file_size = getattr(options, 'max_file_size', 0) or 0
+    if max_file_size < 0:
+      raise errors.BadConfigOption(
+          'Invalid max file size value, cannot be negative.')
+    self._max_file_size = max_file_size
+
+    file_date_start_string = getattr(options, 'file_date_start', None)
+    if file_date_start_string:
+      try:
+        file_date_start = time_elements.TimeElementsInMicroseconds()
+        file_date_start.CopyFromDateTimeString(file_date_start_string)
+        self._file_date_start = file_date_start
+      except (TypeError, ValueError):
+        raise errors.BadConfigOption(
+            f'Invalid file date start value: {file_date_start_string:s}. '
+            f'Expected format: YYYY-MM-DD or YYYY-MM-DD hh:mm:ss.')
+
+    file_date_end_string = getattr(options, 'file_date_end', None)
+    if file_date_end_string:
+      try:
+        file_date_end = time_elements.TimeElementsInMicroseconds()
+        file_date_end.CopyFromDateTimeString(file_date_end_string)
+        self._file_date_end = file_date_end
+      except (TypeError, ValueError):
+        raise errors.BadConfigOption(
+            f'Invalid file date end value: {file_date_end_string:s}. '
+            f'Expected format: YYYY-MM-DD or YYYY-MM-DD hh:mm:ss.')
+
+    if (self._file_date_start and self._file_date_end and
+        self._file_date_start > self._file_date_end):
+      raise errors.BadConfigOption(
+          'File date start must be earlier than file date end.')
 
     argument_helper_names = [
         'process_resources', 'temporary_directory', 'vfs_backend', 'workers',
@@ -689,6 +730,29 @@ class ExtractionTool(
         '--single_process', '--single-process', dest='single_process',
         action='store_true', default=False, help=(
             'Indicate that the tool should run in a single process.'))
+
+    argument_group.add_argument(
+        '--max_file_size', '--max-file-size', dest='max_file_size',
+        action='store', type=int, default=0, metavar='SIZE', help=(
+            'Maximum file size in bytes that the extraction worker should '
+            'process. Files larger than this limit will be skipped. '
+            'A value of 0 (default) means no limit.'))
+
+    argument_group.add_argument(
+        '--file_date_start', '--file-date-start', dest='file_date_start',
+        action='store', type=str, default=None, metavar='DATE', help=(
+            'Start of the file date range filter. Files whose access, '
+            'modification and creation timestamps all fall outside the '
+            'specified range will be skipped. Format: '
+            'YYYY-MM-DD or YYYY-MM-DD hh:mm:ss. Default timezone is UTC.'))
+
+    argument_group.add_argument(
+        '--file_date_end', '--file-date-end', dest='file_date_end',
+        action='store', type=str, default=None, metavar='DATE', help=(
+            'End of the file date range filter. Files whose access, '
+            'modification and creation timestamps all fall outside the '
+            'specified range will be skipped. Format: '
+            'YYYY-MM-DD or YYYY-MM-DD hh:mm:ss. Default timezone is UTC.'))
 
     argument_helper_names = [
         'temporary_directory', 'vfs_backend', 'workers', 'zeromq']

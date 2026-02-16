@@ -154,8 +154,11 @@ class EventExtractionWorker(object):
     self._event_data_extractor = extractors.EventDataExtractor(
         force_parser=force_parser,
         parser_filter_expression=parser_filter_expression)
+    self._file_date_end = None
+    self._file_date_start = None
     self._force_parser = force_parser
     self._hasher_file_size_limit = None
+    self._max_file_size = None
     self._path_spec_extractor = extractors.PathSpecExtractor()
     self._process_compressed_streams = None
     self._processing_profiler = None
@@ -1002,6 +1005,54 @@ class EventExtractionWorker(object):
     self.last_activity_timestamp = time.time()
     self.processing_status = definitions.STATUS_INDICATOR_RUNNING
 
+    # Skip files that exceed the configured maximum file size limit.
+    # Directories are always processed regardless of the limit.
+    if self._max_file_size and not file_entry.IsDirectory():
+      try:
+        file_size = file_entry.size
+        if file_size is not None and file_size > self._max_file_size:
+          display_name = parser_mediator.GetDisplayNameForPathSpec(
+              file_entry.path_spec)
+          logger.debug(
+              f'Skipping file: {display_name:s} size {file_size:d} '
+              f'exceeds max file size limit {self._max_file_size:d}')
+          self.processing_status = definitions.STATUS_INDICATOR_IDLE
+          return
+      except (dfvfs_errors.BackEndError, dfvfs_errors.PathSpecError):
+        pass
+
+    # Skip files whose timestamps fall outside the configured date range.
+    # A file is accepted if at least one of its timestamps (access_time,
+    # modification_time, creation_time) falls within the range (OR logic).
+    # Directories are always processed regardless of the date range.
+    if ((self._file_date_start or self._file_date_end) and
+        not file_entry.IsDirectory()):
+      try:
+        in_range = False
+        for timestamp in (file_entry.access_time,
+                          file_entry.modification_time,
+                          file_entry.creation_time):
+          if timestamp is None:
+            continue
+          if (self._file_date_start is not None and
+              timestamp < self._file_date_start):
+            continue
+          if (self._file_date_end is not None and
+              timestamp > self._file_date_end):
+            continue
+          in_range = True
+          break
+        if not in_range:
+          display_name = parser_mediator.GetDisplayNameForPathSpec(
+              file_entry.path_spec)
+          logger.debug(
+              f'Skipping file: {display_name:s} no timestamp within '
+              f'the configured date range')
+          self.processing_status = definitions.STATUS_INDICATOR_IDLE
+          return
+      except (dfvfs_errors.BackEndError, dfvfs_errors.PathSpecError):
+        pass
+
     parser_mediator.SetFileEntry(file_entry)
 
     try:
@@ -1043,7 +1094,10 @@ class EventExtractionWorker(object):
       configuration (ExtractionConfiguration): extraction configuration.
     """
     self._SetArchiveTypes(configuration.archive_types_string)
+    self._file_date_end = configuration.file_date_end
+    self._file_date_start = configuration.file_date_start
     self._hasher_file_size_limit = configuration.hasher_file_size_limit
+    self._max_file_size = configuration.max_file_size
     self._SetHashers(configuration.hasher_names_string)
     self._process_compressed_streams = configuration.process_compressed_streams
     self._SetYaraRules(configuration.yara_rules_string)
