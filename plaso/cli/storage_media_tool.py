@@ -239,8 +239,16 @@ class StorageMediaToolVolumeScanner(dfvfs_volume_scanner.VolumeScanner):
           supported, the scan node is invalid or there are no credentials
           defined for the format.
     """
-    super(StorageMediaToolVolumeScanner, self)._ScanEncryptedVolume(
-        scan_context, scan_node, options)
+    # Gracefully handle encrypted volumes where valid credentials are not
+    # available. Without this, a ScannerError would propagate up and halt the
+    # entire source scan. By catching the exception and returning early, we
+    # allow the scanner to skip inaccessible encrypted volumes and continue
+    # processing the remaining volumes.
+    try:
+      super(StorageMediaToolVolumeScanner, self)._ScanEncryptedVolume(
+          scan_context, scan_node, options)
+    except dfvfs_errors.ScannerError:
+      return
 
     if not scan_context.IsLockedScanNode(scan_node.path_spec):
       credential_type, credential_data = scan_node.credential

@@ -62,6 +62,14 @@ class ExtractionConfiguration(interface.AttributeContainer):
         should process, where 0 or None represents unlimited.
     hasher_names_string (str): comma separated names of hashers to use during
         processing.
+    file_date_end (dfdatetime.DateTimeValues): end of the file date range
+        filter. Files with no timestamp within the range are skipped. None
+        represents no upper bound.
+    file_date_start (dfdatetime.DateTimeValues): start of the file date range
+        filter. Files with no timestamp within the range are skipped. None
+        represents no lower bound.
+    max_file_size (int): maximum file size in bytes that the extraction worker
+        should process, where 0 or None represents no limit.
     process_compressed_streams (bool): True if file content in compressed
         streams should be processed.
     yara_rules_string (str): Yara rule definitions.
@@ -74,8 +82,11 @@ class ExtractionConfiguration(interface.AttributeContainer):
     self.archive_types_string = None
     self.extract_winevt_resources = True
     self.extract_winreg_binary = False
+    self.file_date_end = None
+    self.file_date_start = None
     self.hasher_file_size_limit = None
     self.hasher_names_string = None
+    self.max_file_size = None
     self.process_compressed_streams = True
     self.yara_rules_string = None
 
