@@ -491,6 +491,8 @@ class TasksStatus(object):
   Attributes:
     number_of_abandoned_tasks (int): number of abandoned tasks.
     number_of_queued_tasks (int): number of active tasks.
+    number_of_skipped_sources (int): number of event sources skipped before
+        task scheduling.
     number_of_tasks_pending_merge (int): number of tasks pending merge.
     number_of_tasks_processing (int): number of tasks processing.
     total_number_of_tasks (int): total number of tasks.
@@ -501,6 +503,7 @@ class TasksStatus(object):
     super(TasksStatus, self).__init__()
     self.number_of_abandoned_tasks = 0
     self.number_of_queued_tasks = 0
+    self.number_of_skipped_sources = 0
     self.number_of_tasks_pending_merge = 0
     self.number_of_tasks_processing = 0
     self.total_number_of_tasks = 0

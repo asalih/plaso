@@ -134,9 +134,12 @@ class ExtractionWorkerProcess(task_process.MultiProcessTaskProcess):
       last_activity_timestamp = max(
           self._extraction_worker.last_activity_timestamp,
           self._parser_mediator.last_activity_timestamp)
+      number_of_skipped_sources = (
+          self._extraction_worker.number_of_skipped_file_entries)
       processing_status = self._extraction_worker.processing_status
     else:
       last_activity_timestamp = 0.0
+      number_of_skipped_sources = 0
       processing_status = self._status
 
     task_identifier = getattr(self._task, 'identifier', '')
@@ -165,6 +168,7 @@ class ExtractionWorkerProcess(task_process.MultiProcessTaskProcess):
         'number_of_produced_event_tags': None,
         'number_of_produced_events': None,
         'number_of_produced_sources': number_of_produced_sources,
+        'number_of_skipped_sources': number_of_skipped_sources,
         'processing_status': processing_status,
         'task_identifier': task_identifier,
         'used_memory': used_memory}

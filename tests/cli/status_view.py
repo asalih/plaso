@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 """Tests for the status view."""
 
+import json
+import os
+import stat
 import sys
 import unittest
 
@@ -14,6 +17,7 @@ import plaso
 from plaso.cli import status_view
 from plaso.engine import processing_status
 
+from tests import test_lib as shared_test_lib
 from tests.cli import test_lib
 
 
@@ -104,6 +108,82 @@ class StatusViewTest(test_lib.CLIToolTestCase):
 
     output = output_writer.ReadOutput()
     self.assertEqual(output, expected_output)
+
+  def testPrintExtractionStatusUpdateJSON(self):
+    """Tests the _PrintExtractionStatusUpdateJSON function."""
+    output_writer = test_lib.TestOutputWriter()
+    test_view = status_view.StatusView(output_writer, 'test_tool')
+
+    process_status = processing_status.ProcessingStatus()
+    process_status.UpdateForemanStatus(
+        'foreman', 'running', 123, 0, 'merge-task', 1, 2, 3, 4, 5, 6,
+        0, 0, 0, 0)
+    process_status.UpdateWorkerStatus(
+        'worker-1', 'running', 456, 0, '/test/file', 7, 8, 9, 10, 11, 12,
+        0, 0, 0, 0)
+
+    tasks_status = processing_status.TasksStatus()
+    tasks_status.number_of_abandoned_tasks = 1
+    tasks_status.number_of_queued_tasks = 2
+    tasks_status.number_of_skipped_sources = 3
+    tasks_status.number_of_tasks_pending_merge = 4
+    tasks_status.number_of_tasks_processing = 5
+    tasks_status.total_number_of_tasks = 6
+    process_status.UpdateTasksStatus(tasks_status)
+
+    self._mocked_time = 123.5
+    with shared_test_lib.TempDirectory() as temp_directory:
+      status_file = os.path.join(temp_directory, 'status.json')
+      test_view.SetMode(status_view.StatusView.MODE_JSON)
+      test_view.SetStatusFile(status_file)
+
+      callback = test_view.GetExtractionStatusUpdateCallback()
+      callback(process_status)
+
+      with open(status_file, 'r', encoding='utf-8') as file_object:
+        status = json.load(file_object)
+
+      self.assertEqual(os.listdir(temp_directory), ['status.json'])
+      if os.name != 'nt':
+        self.assertEqual(stat.S_IMODE(os.stat(status_file).st_mode), 0o600)
+
+    self.assertEqual(status['timestamp'], 123.5)
+    self.assertEqual(status['tasks']['skipped'], 3)
+    self.assertEqual(status['foreman']['identifier'], 'foreman')
+    self.assertEqual(status['workers'][0]['pid'], 456)
+    self.assertEqual(status['workers'][0]['display_name'], '/test/file')
+
+  def testPrintExtractionStatusUpdateJSONWriteFailure(self):
+    """Tests that a transient status file write failure does not raise."""
+    output_writer = test_lib.TestOutputWriter()
+    test_view = status_view.StatusView(output_writer, 'test_tool')
+
+    process_status = processing_status.ProcessingStatus()
+
+    self._mocked_time = 123.5
+    with shared_test_lib.TempDirectory() as temp_directory:
+      status_file = os.path.join(temp_directory, 'status.json')
+      test_view.SetMode(status_view.StatusView.MODE_JSON)
+      test_view.SetStatusFile(status_file)
+
+      callback = test_view.GetExtractionStatusUpdateCallback()
+
+      sharing_error = OSError(13, 'file is in use')
+      with mock.patch(
+          'plaso.cli.status_view.os.replace', side_effect=sharing_error):
+        callback(process_status)
+
+      # The failed update must not leave a status or temporary file behind.
+      self.assertEqual(os.listdir(temp_directory), [])
+
+      # A subsequent update without failures must succeed.
+      self._mocked_time = 124.5
+      callback(process_status)
+
+      with open(status_file, 'r', encoding='utf-8') as file_object:
+        status = json.load(file_object)
+
+    self.assertEqual(status['timestamp'], 124.5)
 
   def testPrintExtractionStatusUpdateWindow(self):
     """Tests the _PrintExtractionStatusUpdateWindow function."""

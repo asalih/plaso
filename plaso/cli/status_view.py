@@ -2,6 +2,8 @@
 """The status view."""
 
 import ctypes
+import json
+import os
 import sys
 import time
 
@@ -15,6 +17,7 @@ from dfvfs.lib import definitions as dfvfs_definitions
 
 import plaso
 
+from plaso.cli import logger
 from plaso.cli import tools
 from plaso.cli import views
 from plaso.lib import definitions
@@ -24,6 +27,7 @@ class StatusView(object):
   """Processing status view."""
 
   MODE_FILE = 'file'
+  MODE_JSON = 'json'
   MODE_LINEAR = 'linear'
   MODE_WINDOW = 'window'
 
@@ -349,6 +353,62 @@ class StatusView(object):
             f'Abandoned: {tasks_status.number_of_abandoned_tasks:d} '
             f'Total: {tasks_status.total_number_of_tasks:d}\n'))
 
+  def _PrintExtractionStatusUpdateJSON(self, processing_status):
+    """Writes a structured extraction status update to a JSON file.
+
+    Args:
+      processing_status (ProcessingStatus): processing status.
+    """
+    tasks_status = getattr(processing_status, 'tasks_status', None)
+    status = {
+        'aborted': bool(getattr(processing_status, 'aborted', False)),
+        'foreman': self._ProcessStatusToJSONDictionary(
+            getattr(processing_status, 'foreman_status', None)),
+        'tasks': {
+            'abandoned': getattr(
+                tasks_status, 'number_of_abandoned_tasks', 0),
+            'pending_merge': getattr(
+                tasks_status, 'number_of_tasks_pending_merge', 0),
+            'processing': getattr(
+                tasks_status, 'number_of_tasks_processing', 0),
+            'queued': getattr(tasks_status, 'number_of_queued_tasks', 0),
+            'skipped': getattr(
+                tasks_status, 'number_of_skipped_sources', 0),
+            'total': getattr(tasks_status, 'total_number_of_tasks', 0)},
+        'timestamp': time.time(),
+        'workers': [
+            self._ProcessStatusToJSONDictionary(worker_status)
+            for worker_status in processing_status.workers_status]}
+
+    # A transient write failure, such as a Windows sharing violation or disk
+    # pressure, must not propagate since an uncaught exception would kill the
+    # status update thread and with it the heartbeat consumers rely on.
+    temporary_path = f'{self._status_file:s}.{os.getpid():d}.tmp'
+    try:
+      file_descriptor = os.open(
+          temporary_path, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o600)
+      with os.fdopen(file_descriptor, 'w', encoding='utf-8') as file_object:
+        json.dump(status, file_object, sort_keys=True)
+        file_object.write('\n')
+        file_object.flush()
+        os.fsync(file_object.fileno())
+
+      os.replace(temporary_path, self._status_file)
+
+    except OSError as exception:
+      logger.warning((
+          f'Unable to write status file: {self._status_file:s} with error: '
+          f'{exception!s}'))
+
+    finally:
+      try:
+        if os.path.exists(temporary_path):
+          os.remove(temporary_path)
+      except OSError as exception:
+        logger.warning((
+            f'Unable to remove temporary status file: {temporary_path:s} '
+            f'with error: {exception!s}'))
+
   def _PrintExtractionStatusUpdateLinear(self, processing_status):
     """Prints an extraction status update in linear mode.
 
@@ -500,6 +560,9 @@ class StatusView(object):
     if self._mode == self.MODE_FILE:
       return self._PrintExtractionStatusUpdateFile
 
+    if self._mode == self.MODE_JSON:
+      return self._PrintExtractionStatusUpdateJSON
+
     if self._mode == self.MODE_LINEAR:
       return self._PrintExtractionStatusUpdateLinear
 
@@ -507,6 +570,29 @@ class StatusView(object):
       return self._PrintExtractionStatusUpdateWindow
 
     return None
+
+  @staticmethod
+  def _ProcessStatusToJSONDictionary(process_status):
+    """Converts a process status into a JSON-serializable dictionary.
+
+    Args:
+      process_status (ProcessStatus): process status.
+
+    Returns:
+      dict[str, object]: process status values or None.
+    """
+    if not process_status:
+      return None
+
+    return {
+        'consumed_events': process_status.number_of_consumed_events,
+        'consumed_sources': process_status.number_of_consumed_sources,
+        'display_name': process_status.display_name or '',
+        'identifier': process_status.identifier or '',
+        'pid': process_status.pid or 0,
+        'produced_events': process_status.number_of_produced_events,
+        'produced_sources': process_status.number_of_produced_sources,
+        'status': process_status.status or ''}
 
   # TODO: refactor to protected method.
   def PrintExtractionStatusHeader(self, processing_status):

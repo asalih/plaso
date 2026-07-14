@@ -229,7 +229,8 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
               event, event_data, event_data_stream, event_tag)
           # If filter doesn't match, skip this event
           if filter_match is False:
-            self._real_storage_writer.AddAttributeContainer(container)
+            if self._store_events_in_storage:
+              self._real_storage_writer.AddAttributeContainer(container)
             return
         except Exception:
           # If filtering fails, include the event to be safe
@@ -249,9 +250,10 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
           dedup_key = (event_values_hash, timestamp, timestamp_desc)
           
           if dedup_key in self._seen_event_keys:
-            # Duplicate event, skip streaming but still write to storage
+            # Duplicate event, skip streaming but write it when configured.
             self._duplicates_skipped += 1
-            self._real_storage_writer.AddAttributeContainer(container)
+            if self._store_events_in_storage:
+              self._real_storage_writer.AddAttributeContainer(container)
             return
           
           # Remember this key for future deduplication
@@ -270,8 +272,12 @@ class HTTPStreamingStorageWriter(JSONStreamingStorageWriter):
         logging.warning('Unable to enqueue event for streaming')
         self._events_failed += 1
 
-    # Forward to real storage writer (but not to parent's AddAttributeContainer 
-    # which would print to stdout)
+    # Forward to real storage writer (but not to parent's AddAttributeContainer
+    # which would print to stdout).
+    if (not self._store_events_in_storage and
+        container.CONTAINER_TYPE in ('event', 'event_tag')):
+      return
+
     self._real_storage_writer.AddAttributeContainer(container)
 
   def _CloseHTTPConnection(self):

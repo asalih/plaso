@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 """The task-based multi-process processing engine."""
 
+import errno
 import os
 import shutil
 import tempfile
+import time
 
 from plaso.lib import definitions
 from plaso.multi_process import engine
+from plaso.multi_process import logger
 from plaso.storage import factory as storage_factory
 
 try:
@@ -27,6 +30,9 @@ class TaskMultiProcessEngine(engine.MultiProcessEngine):
 
   # pylint: disable=abstract-method
 
+  _WINDOWS_FILE_OPERATION_RETRY_ATTEMPTS = 5
+  _WINDOWS_FILE_OPERATION_RETRY_DELAY = 0.1
+
   def __init__(self):
     """Initializes a task-based multi-process engine."""
     super(TaskMultiProcessEngine, self).__init__()
@@ -36,6 +42,35 @@ class TaskMultiProcessEngine(engine.MultiProcessEngine):
     self._redis_client = None
     self._storage_file_path = None
     self._task_storage_path = None
+
+  def _RunFileOperationWithRetry(self, operation, description):
+    """Runs a file operation with retries for Windows sharing violations.
+
+    Args:
+      operation (function): file operation that takes no arguments.
+      description (str): description of the file operation.
+
+    Raises:
+      OSError: if the operation fails.
+    """
+    for attempt in range(self._WINDOWS_FILE_OPERATION_RETRY_ATTEMPTS):
+      try:
+        operation()
+        return
+      except OSError as exception:
+        is_windows_sharing_error = (
+            getattr(exception, 'winerror', None) == 32 or
+            (os.name == 'nt' and exception.errno in (
+                errno.EACCES, errno.EBUSY)))
+        if (not is_windows_sharing_error or
+            attempt + 1 == self._WINDOWS_FILE_OPERATION_RETRY_ATTEMPTS):
+          raise
+
+        logger.warning((
+            f'Unable to {description:s} due to a Windows sharing violation; '
+            f'retrying attempt {attempt + 2:d} of '
+            f'{self._WINDOWS_FILE_OPERATION_RETRY_ATTEMPTS:d}.'))
+        time.sleep(self._WINDOWS_FILE_OPERATION_RETRY_DELAY)
 
   # TODO: remove, currently only used by psort.
   def _CheckTaskReadyForMerge(self, task_storage_format, task):
@@ -226,7 +261,10 @@ class TaskMultiProcessEngine(engine.MultiProcessEngine):
       task.storage_file_size = os.path.getsize(processed_storage_file_path)
 
       try:
-        os.rename(processed_storage_file_path, merge_storage_file_path)
+        self._RunFileOperationWithRetry(
+            lambda: os.rename(
+                processed_storage_file_path, merge_storage_file_path),
+            f'rename task storage file: {processed_storage_file_path:s}')
       except OSError as exception:
         raise IOError((
             'Unable to rename task storage file: {0:s} with error: '
@@ -315,19 +353,7 @@ class TaskMultiProcessEngine(engine.MultiProcessEngine):
       else:
         # Use system temp directory if no storage file path is set
         output_directory = None
-      
-      self._task_storage_path = tempfile.mkdtemp(dir=output_directory)
 
-      self._merge_task_storage_path = os.path.join(
-          self._task_storage_path, 'merge')
-      os.mkdir(self._merge_task_storage_path)
-
-      self._processed_task_storage_path = os.path.join(
-          self._task_storage_path, 'processed')
-      os.mkdir(self._processed_task_storage_path)
-
-      self._processing_configuration.task_storage_path = self._task_storage_path
-      
       self._task_storage_path = tempfile.mkdtemp(dir=output_directory)
 
       self._merge_task_storage_path = os.path.join(
@@ -363,21 +389,35 @@ class TaskMultiProcessEngine(engine.MultiProcessEngine):
     elif task_storage_format == definitions.STORAGE_FORMAT_SQLITE:
       if os.path.isdir(self._merge_task_storage_path):
         if abort:
-          shutil.rmtree(self._merge_task_storage_path)
+          self._RunFileOperationWithRetry(
+              lambda: shutil.rmtree(self._merge_task_storage_path),
+              f'remove merge task storage: {self._merge_task_storage_path:s}')
         else:
-          os.rmdir(self._merge_task_storage_path)
+          self._RunFileOperationWithRetry(
+              lambda: os.rmdir(self._merge_task_storage_path),
+              f'remove merge task storage: {self._merge_task_storage_path:s}')
 
       if os.path.isdir(self._processed_task_storage_path):
         if abort:
-          shutil.rmtree(self._processed_task_storage_path)
+          self._RunFileOperationWithRetry(
+              lambda: shutil.rmtree(self._processed_task_storage_path),
+              f'remove processed task storage: '
+              f'{self._processed_task_storage_path:s}')
         else:
-          os.rmdir(self._processed_task_storage_path)
+          self._RunFileOperationWithRetry(
+              lambda: os.rmdir(self._processed_task_storage_path),
+              f'remove processed task storage: '
+              f'{self._processed_task_storage_path:s}')
 
       if os.path.isdir(self._task_storage_path):
         if abort:
-          shutil.rmtree(self._task_storage_path)
+          self._RunFileOperationWithRetry(
+              lambda: shutil.rmtree(self._task_storage_path),
+              f'remove task storage: {self._task_storage_path:s}')
         else:
-          os.rmdir(self._task_storage_path)
+          self._RunFileOperationWithRetry(
+              lambda: os.rmdir(self._task_storage_path),
+              f'remove task storage: {self._task_storage_path:s}')
 
       self._merge_task_storage_path = None
       self._processed_task_storage_path = None

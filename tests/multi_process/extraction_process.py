@@ -72,11 +72,14 @@ class WorkerProcessTest(test_lib.MultiProcessingTestCase):
       task_storage_writer = self._CreateStorageWriter()
       test_process._parser_mediator = self._CreateParserMediator(
           task_storage_writer)
+      test_process._extraction_worker = TestEventExtractionWorker()
+      test_process._extraction_worker.number_of_skipped_file_entries = 7
       status_attributes = test_process._GetStatus()
 
       self.assertIsNotNone(status_attributes)
       self.assertEqual(status_attributes['identifier'], 'TestWorker')
       self.assertEqual(status_attributes['last_activity_timestamp'], 0.0)
+      self.assertEqual(status_attributes['number_of_skipped_sources'], 7)
 
   def testMain(self):
     """Tests the _Main function."""

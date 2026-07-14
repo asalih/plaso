@@ -103,6 +103,8 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
   # Maximum number of concurrent tasks.
   _MAXIMUM_NUMBER_OF_TASKS = 10000
 
+  _SCHEDULER_IDLE_SLEEP_SECONDS = 0.01
+
   _TASK_QUEUE_TIMEOUT_SECONDS = 2
 
   _WORKER_PROCESSES_MINIMUM = 2
@@ -177,6 +179,8 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
     self._number_of_produced_event_data = 0
     self._number_of_produced_events = 0
     self._number_of_produced_sources = 0
+    self._number_of_skipped_sources = 0
+    self._number_of_skipped_sources_per_pid = {}
     self._number_of_worker_processes = number_of_worker_processes
     self._path_spec_extractor = extractors.PathSpecExtractor()
     self._resolver_context = context.Context()
@@ -744,6 +748,8 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
           event_source = event_source_heap.PopEventSource()
 
         has_pending_tasks = self._task_manager.HasPendingTasks()
+        if has_pending_tasks and not task and not event_source:
+          time.sleep(self._SCHEDULER_IDLE_SLEEP_SECONDS)
 
       except KeyboardInterrupt:
         if self._debug_output:
@@ -794,6 +800,8 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
     self._number_of_produced_event_data = 0
     self._number_of_produced_events = 0
     self._number_of_produced_sources = 0
+    self._number_of_skipped_sources = 0
+    self._number_of_skipped_sources_per_pid = {}
 
     stored_parsers_counter = collections.Counter({
         parser_count.name: parser_count
@@ -827,6 +835,7 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
     self._UpdateForemanProcessStatus()
 
     tasks_status = self._task_manager.GetStatusInformation()
+    tasks_status.number_of_skipped_sources = self._number_of_skipped_sources
     if self._task_queue_profiler:
       self._task_queue_profiler.Sample(tasks_status)
 
@@ -1006,6 +1015,15 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
     number_of_produced_sources = process_status.get(
         'number_of_produced_sources', None)
 
+    number_of_skipped_sources = process_status.get(
+        'number_of_skipped_sources', 0)
+    previous_number_of_skipped_sources = (
+        self._number_of_skipped_sources_per_pid.get(pid, 0))
+    if number_of_skipped_sources >= previous_number_of_skipped_sources:
+      self._number_of_skipped_sources += (
+          number_of_skipped_sources - previous_number_of_skipped_sources)
+      self._number_of_skipped_sources_per_pid[pid] = number_of_skipped_sources
+
     if processing_status != definitions.STATUS_INDICATOR_IDLE:
       last_activity_timestamp = process_status.get(
           'last_activity_timestamp', 0.0)
@@ -1049,6 +1067,7 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
     self._UpdateForemanProcessStatus()
 
     tasks_status = self._task_manager.GetStatusInformation()
+    tasks_status.number_of_skipped_sources = self._number_of_skipped_sources
     if self._task_queue_profiler:
       self._task_queue_profiler.Sample(tasks_status)
 

@@ -14,7 +14,7 @@ class StatusViewArgumentsHelper(interface.ArgumentsHelper):
   NAME = 'status_view'
   DESCRIPTION = 'Status view command line arguments.'
 
-  _STATUS_VIEW_TYPES = ['file', 'linear', 'none', 'window']
+  _STATUS_VIEW_TYPES = ['file', 'json', 'linear', 'none', 'window']
 
   @classmethod
   def AddArguments(cls, argument_group):
@@ -31,8 +31,8 @@ class StatusViewArgumentsHelper(interface.ArgumentsHelper):
         '--status_view', '--status-view', dest='status_view_mode',
         choices=cls._STATUS_VIEW_TYPES, action='store', metavar='TYPE',
         default=status_view.StatusView.MODE_WINDOW, help=(
-            'The processing status view mode: "file", "linear", "none" or '
-            '"window".'))
+            'The processing status view mode: "file", "json", "linear", '
+            '"none" or "window".'))
 
     argument_group.add_argument(
         '--status_view_file', '--status-view-file', dest='status_view_file',

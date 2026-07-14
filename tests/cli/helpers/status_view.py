@@ -30,8 +30,8 @@ Test argument parser.
 
 {0:s}:
   --status_view, --status-view TYPE
-                        The processing status view mode: "file", "linear",
-                        "none" or "window".
+                        The processing status view mode: "file", "json",
+                        "linear", "none" or "window".
   --status_view_file, --status-view-file PATH
                         The name of the status view file.
   --status_view_interval, --status-view-interval SECONDS
@@ -47,8 +47,8 @@ Test argument parser.
 
 {0:s}:
   --status_view TYPE, --status-view TYPE
-                        The processing status view mode: "file", "linear",
-                        "none" or "window".
+                        The processing status view mode: "file", "json",
+                        "linear", "none" or "window".
   --status_view_file PATH, --status-view-file PATH
                         The name of the status view file.
   --status_view_interval SECONDS, --status-view-interval SECONDS

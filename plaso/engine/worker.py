@@ -164,6 +164,7 @@ class EventExtractionWorker(object):
     self._processing_profiler = None
 
     self.last_activity_timestamp = 0.0
+    self.number_of_skipped_file_entries = 0
     self.processing_status = definitions.STATUS_INDICATOR_IDLE
 
   def _AnalyzeDataStream(
@@ -742,6 +743,9 @@ class EventExtractionWorker(object):
         if file_entry.IsRoot() and sub_file_entry.name == '$OrphanFiles':
           continue
 
+      if self._ShouldSkipFileEntry(parser_mediator, sub_file_entry):
+        continue
+
       event_source = event_sources.FileEntryEventSource(
           file_entry_type=sub_file_entry.entry_type,
           path_spec=sub_file_entry.path_spec)
@@ -754,6 +758,72 @@ class EventExtractionWorker(object):
       self._processing_profiler.StopTiming('collecting')
 
     self.processing_status = definitions.STATUS_INDICATOR_RUNNING
+
+  def _ShouldSkipFileEntry(self, parser_mediator, file_entry):
+    """Determines if a file entry should be skipped.
+
+    Directories are never skipped to preserve directory traversal.
+
+    Args:
+      parser_mediator (ParserMediator): mediates interactions between parsers
+          and other components, such as storage and dfVFS.
+      file_entry (dfvfs.FileEntry): file entry.
+
+    Returns:
+      bool: True if the file entry should be skipped.
+    """
+    if not (self._max_file_size or
+            self._file_date_start or self._file_date_end):
+      return False
+
+    if file_entry.IsDirectory():
+      return False
+
+    # Skip files that exceed the configured maximum file size limit.
+    if self._max_file_size:
+      try:
+        file_size = file_entry.size
+        if file_size is not None and file_size > self._max_file_size:
+          display_name = parser_mediator.GetDisplayNameForPathSpec(
+              file_entry.path_spec)
+          logger.debug(
+              f'Skipping file: {display_name:s} size {file_size:d} '
+              f'exceeds max file size limit {self._max_file_size:d}')
+          self.number_of_skipped_file_entries += 1
+          return True
+      except (dfvfs_errors.BackEndError, dfvfs_errors.PathSpecError):
+        pass
+
+    # A file is accepted if at least one of its timestamps falls within the
+    # configured date range.
+    if self._file_date_start or self._file_date_end:
+      try:
+        in_range = False
+        for timestamp in (file_entry.access_time,
+                          file_entry.modification_time,
+                          file_entry.creation_time):
+          if timestamp is None:
+            continue
+          if (self._file_date_start is not None and
+              timestamp < self._file_date_start):
+            continue
+          if (self._file_date_end is not None and
+              timestamp > self._file_date_end):
+            continue
+          in_range = True
+          break
+        if not in_range:
+          display_name = parser_mediator.GetDisplayNameForPathSpec(
+              file_entry.path_spec)
+          logger.debug(
+              f'Skipping file: {display_name:s} no timestamp within '
+              f'the configured date range')
+          self.number_of_skipped_file_entries += 1
+          return True
+      except (dfvfs_errors.BackEndError, dfvfs_errors.PathSpecError):
+        pass
+
+    return False
 
   def _ProcessFileEntry(self, parser_mediator, file_entry):
     """Processes a file entry.
@@ -1005,53 +1075,9 @@ class EventExtractionWorker(object):
     self.last_activity_timestamp = time.time()
     self.processing_status = definitions.STATUS_INDICATOR_RUNNING
 
-    # Skip files that exceed the configured maximum file size limit.
-    # Directories are always processed regardless of the limit.
-    if self._max_file_size and not file_entry.IsDirectory():
-      try:
-        file_size = file_entry.size
-        if file_size is not None and file_size > self._max_file_size:
-          display_name = parser_mediator.GetDisplayNameForPathSpec(
-              file_entry.path_spec)
-          logger.debug(
-              f'Skipping file: {display_name:s} size {file_size:d} '
-              f'exceeds max file size limit {self._max_file_size:d}')
-          self.processing_status = definitions.STATUS_INDICATOR_IDLE
-          return
-      except (dfvfs_errors.BackEndError, dfvfs_errors.PathSpecError):
-        pass
-
-    # Skip files whose timestamps fall outside the configured date range.
-    # A file is accepted if at least one of its timestamps (access_time,
-    # modification_time, creation_time) falls within the range (OR logic).
-    # Directories are always processed regardless of the date range.
-    if ((self._file_date_start or self._file_date_end) and
-        not file_entry.IsDirectory()):
-      try:
-        in_range = False
-        for timestamp in (file_entry.access_time,
-                          file_entry.modification_time,
-                          file_entry.creation_time):
-          if timestamp is None:
-            continue
-          if (self._file_date_start is not None and
-              timestamp < self._file_date_start):
-            continue
-          if (self._file_date_end is not None and
-              timestamp > self._file_date_end):
-            continue
-          in_range = True
-          break
-        if not in_range:
-          display_name = parser_mediator.GetDisplayNameForPathSpec(
-              file_entry.path_spec)
-          logger.debug(
-              f'Skipping file: {display_name:s} no timestamp within '
-              f'the configured date range')
-          self.processing_status = definitions.STATUS_INDICATOR_IDLE
-          return
-      except (dfvfs_errors.BackEndError, dfvfs_errors.PathSpecError):
-        pass
+    if self._ShouldSkipFileEntry(parser_mediator, file_entry):
+      self.processing_status = definitions.STATUS_INDICATOR_IDLE
+      return
 
     parser_mediator.SetFileEntry(file_entry)
 

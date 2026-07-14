@@ -793,15 +793,16 @@ class ExtractionTool(
         self._file_system_path_specs = [archive_path_spec]
         self._source_type = definitions.SOURCE_TYPE_ARCHIVE
 
-    # Set status view mode - use linear mode for JSON stdout or HTTP endpoint to prevent screen clearing
-    if json_stdout_mode or http_endpoint:
-      # For JSON stdout or HTTP endpoint mode, disable status updates completely for clean output
+    # Preserve structured status output when explicitly requested. Otherwise
+    # suppress status output in streaming modes to keep their output clean.
+    if self._status_view_mode == status_view.StatusView.MODE_JSON:
+      self._status_view.SetMode(self._status_view_mode)
+      self._status_view.SetStatusFile(self._status_view_file)
+    elif json_stdout_mode or http_endpoint:
       self._status_view.SetMode(status_view.StatusView.MODE_FILE)
-      # Set status file to /dev/null to suppress output
-      import os
-      if os.name == 'nt':  # Windows
+      if os.name == 'nt':
         self._status_view.SetStatusFile('NUL')
-      else:  # Unix/Linux/macOS
+      else:
         self._status_view.SetStatusFile('/dev/null')
     else:
       self._status_view.SetMode(self._status_view_mode)

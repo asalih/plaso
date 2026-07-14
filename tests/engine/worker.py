@@ -4,7 +4,9 @@
 
 import collections
 import unittest
+from unittest import mock
 
+from dfdatetime import time_elements
 from dfvfs.lib import definitions as dfvfs_definitions
 from dfvfs.resolver import context
 from dfvfs.path import factory as path_spec_factory
@@ -360,7 +362,80 @@ class EventExtractionWorkerTest(shared_test_lib.BaseTestCase):
 
   # TODO: add tests for _ProcessArchiveTypes
   # TODO: add tests for _ProcessCompressedStreamTypes
-  # TODO: add tests for _ProcessDirectory
+
+  def testProcessDirectoryWithFileEntryFilters(self):
+    """Tests directory processing with file entry filters."""
+    date_before_range = time_elements.TimeElementsInMicroseconds()
+    date_before_range.CopyFromDateTimeString('2019-01-01 00:00:00')
+    date_in_range = time_elements.TimeElementsInMicroseconds()
+    date_in_range.CopyFromDateTimeString('2020-06-01 00:00:00')
+
+    def _CreateFileEntry(
+        name, entry_type, is_directory, size, timestamps):
+      file_entry = mock.Mock()
+      file_entry.access_time = timestamps[0]
+      file_entry.creation_time = timestamps[1]
+      file_entry.entry_type = entry_type
+      file_entry.IsAllocated.return_value = True
+      file_entry.IsDirectory.return_value = is_directory
+      file_entry.modification_time = timestamps[2]
+      file_entry.name = name
+      file_entry.path_spec = path_spec_factory.Factory.NewPathSpec(
+          dfvfs_definitions.TYPE_INDICATOR_OS, location=f'/{name:s}')
+      file_entry.size = size
+      file_entry.type_indicator = dfvfs_definitions.TYPE_INDICATOR_OS
+      return file_entry
+
+    directory_file_entry = _CreateFileEntry(
+        'directory', dfvfs_definitions.FILE_ENTRY_TYPE_DIRECTORY, True, 1000,
+        (date_before_range, date_before_range, date_before_range))
+    oversized_file_entry = _CreateFileEntry(
+        'oversized', dfvfs_definitions.FILE_ENTRY_TYPE_FILE, False, 101,
+        (date_in_range, date_in_range, date_in_range))
+    old_file_entry = _CreateFileEntry(
+        'old', dfvfs_definitions.FILE_ENTRY_TYPE_FILE, False, 10,
+        (date_before_range, date_before_range, date_before_range))
+    matching_file_entry = _CreateFileEntry(
+        'matching', dfvfs_definitions.FILE_ENTRY_TYPE_FILE, False, 10,
+        (date_before_range, None, date_in_range))
+
+    root_file_entry = mock.Mock()
+    root_file_entry.IsRoot.return_value = False
+    root_file_entry.sub_file_entries = [
+        directory_file_entry, oversized_file_entry, old_file_entry,
+        matching_file_entry]
+
+    configuration = configurations.ExtractionConfiguration()
+    configuration.file_date_start = date_in_range
+    configuration.max_file_size = 100
+
+    extraction_worker = worker.EventExtractionWorker()
+    extraction_worker.SetExtractionConfiguration(configuration)
+
+    resolver_context = context.Context()
+    parser_mediator = parsers_mediator.ParserMediator(
+        resolver_context=resolver_context)
+    storage_writer = fake_writer.FakeStorageWriter()
+    parser_mediator.SetStorageWriter(storage_writer)
+
+    storage_writer.Open()
+    try:
+      extraction_worker._ProcessDirectory(parser_mediator, root_file_entry)
+
+      event_sources = list(
+          storage_writer.GetAttributeContainers('event_source'))
+    finally:
+      storage_writer.Close()
+
+    self.assertEqual(len(event_sources), 2)
+    self.assertEqual(
+        [event_source.path_spec.location for event_source in event_sources],
+        ['/directory', '/matching'])
+    self.assertEqual(
+        event_sources[0].file_entry_type,
+        dfvfs_definitions.FILE_ENTRY_TYPE_DIRECTORY)
+    self.assertEqual(extraction_worker.number_of_skipped_file_entries, 2)
+
   # TODO: add tests for _ProcessFileEntry
   # TODO: add tests for _ProcessFileEntryDataStream
   # TODO: add tests for _ProcessMetadataFile
