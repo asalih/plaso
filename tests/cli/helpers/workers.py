@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the worker processes CLI arguments helper."""
 
-import argparse
 import sys
 import unittest
 
@@ -14,20 +12,20 @@ from tests.cli import test_lib as cli_test_lib
 
 
 class WorkersArgumentsHelperTest(cli_test_lib.CLIToolTestCase):
-  """Tests for the worker processes CLI arguments helper."""
+    """Tests for the worker processes CLI arguments helper."""
 
-  # pylint: disable=no-member,protected-access
+    # pylint: disable=no-member,protected-access
 
-  _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
+    _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
 
-  if _PYTHON3_13_OR_LATER:
-    _EXPECTED_OUTPUT = """\
+    if _PYTHON3_13_OR_LATER:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--worker_memory_limit SIZE] [--worker_timeout MINUTES]
                      [--workers WORKERS]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --worker_memory_limit, --worker-memory-limit SIZE
                         Maximum amount of memory (data segment and shared
                         memory) a worker process is allowed to consume in
@@ -43,16 +41,16 @@ Test argument parser.
   --workers WORKERS     Number of worker processes. The default is the number
                         of available system CPUs minus one, for the main
                         (foreman) process.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  else:
-    _EXPECTED_OUTPUT = """\
+    else:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--worker_memory_limit SIZE] [--worker_timeout MINUTES]
                      [--workers WORKERS]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --worker_memory_limit SIZE, --worker-memory-limit SIZE
                         Maximum amount of memory (data segment and shared
                         memory) a worker process is allowed to consume in
@@ -68,49 +66,46 @@ Test argument parser.
   --workers WORKERS     Number of worker processes. The default is the number
                         of available system CPUs minus one, for the main
                         (foreman) process.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  def testAddArguments(self):
-    """Tests the AddArguments function."""
-    argument_parser = argparse.ArgumentParser(
-        prog='cli_helper.py', description='Test argument parser.',
-        add_help=False,
-        formatter_class=cli_test_lib.SortedArgumentsHelpFormatter)
+    def testAddArguments(self):
+        """Tests the AddArguments function."""
+        argument_parser = self._GetTestArgumentParser("cli_helper.py")
 
-    workers.WorkersArgumentsHelper.AddArguments(argument_parser)
+        workers.WorkersArgumentsHelper.AddArguments(argument_parser)
 
-    output = self._RunArgparseFormatHelp(argument_parser)
-    self.assertEqual(output, self._EXPECTED_OUTPUT)
+        output = self._RunArgparseFormatHelp(argument_parser)
+        self.assertEqual(output, self._EXPECTED_OUTPUT)
 
-  def testParseOptions(self):
-    """Tests the ParseOptions function."""
-    options = cli_test_lib.TestOptions()
-    options.workers = 0
+    def testParseOptions(self):
+        """Tests the ParseOptions function."""
+        options = cli_test_lib.TestOptions()
+        options.workers = 0
 
-    test_tool = tools.CLITool()
-    workers.WorkersArgumentsHelper.ParseOptions(options, test_tool)
+        test_tool = tools.CLITool()
+        workers.WorkersArgumentsHelper.ParseOptions(options, test_tool)
 
-    self.assertEqual(test_tool._number_of_extraction_workers, options.workers)
+        self.assertEqual(test_tool._number_of_extraction_workers, options.workers)
 
-    with self.assertRaises(errors.BadConfigObject):
-      workers.WorkersArgumentsHelper.ParseOptions(options, None)
+        with self.assertRaises(errors.BadConfigObject):
+            workers.WorkersArgumentsHelper.ParseOptions(options, None)
 
-    with self.assertRaises(errors.BadConfigOption):
-      options.workers = 'bogus'
-      workers.WorkersArgumentsHelper.ParseOptions(options, test_tool)
+        with self.assertRaises(errors.BadConfigOption):
+            options.workers = "bogus"
+            workers.WorkersArgumentsHelper.ParseOptions(options, test_tool)
 
-    with self.assertRaises(errors.BadConfigOption):
-      options.workers = -1
-      workers.WorkersArgumentsHelper.ParseOptions(options, test_tool)
+        with self.assertRaises(errors.BadConfigOption):
+            options.workers = -1
+            workers.WorkersArgumentsHelper.ParseOptions(options, test_tool)
 
-    with self.assertRaises(errors.BadConfigOption):
-      options.worker_memory_limit = 'bogus'
-      workers.WorkersArgumentsHelper.ParseOptions(options, test_tool)
+        with self.assertRaises(errors.BadConfigOption):
+            options.worker_memory_limit = "bogus"
+            workers.WorkersArgumentsHelper.ParseOptions(options, test_tool)
 
-    with self.assertRaises(errors.BadConfigOption):
-      options.worker_memory_limit = -1
-      workers.WorkersArgumentsHelper.ParseOptions(options, test_tool)
+        with self.assertRaises(errors.BadConfigOption):
+            options.worker_memory_limit = -1
+            workers.WorkersArgumentsHelper.ParseOptions(options, test_tool)
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

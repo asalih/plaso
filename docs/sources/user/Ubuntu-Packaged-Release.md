@@ -1,6 +1,6 @@
 # Installing Plaso on Ubuntu
 
-### Ubuntu 24.04 LTS (noble)
+### Ubuntu 26.04 LTS (noble)
 
 **Note that other versions of Ubuntu are not supported at this time.**
 
@@ -19,8 +19,8 @@ sudo add-apt-repository ppa:gift/stable
 Update and install Plaso:
 
 ```
-sudo apt-get update
-sudo apt-get install plaso-tools
+sudo apt update
+sudo apt install plaso-tools
 ```
 
 ### SANS Investigative Forensic Toolkit (SIFT) Workstation

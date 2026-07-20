@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the hashers CLI arguments helper."""
 
-import argparse
 import sys
 import unittest
 
@@ -14,19 +12,19 @@ from tests.cli import test_lib as cli_test_lib
 
 
 class HashersArgumentsHelperTest(cli_test_lib.CLIToolTestCase):
-  """Tests for the hashers CLI arguments helper."""
+    """Tests for the hashers CLI arguments helper."""
 
-  # pylint: disable=no-member,protected-access
+    # pylint: disable=no-member,protected-access
 
-  _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
+    _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
 
-  if _PYTHON3_13_OR_LATER:
-    _EXPECTED_OUTPUT = """\
+    if _PYTHON3_13_OR_LATER:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--hasher_file_size_limit SIZE] [--hashers HASHER_LIST]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --hasher_file_size_limit, --hasher-file-size-limit SIZE
                         Define the maximum file size in bytes that hashers
                         should process. Any larger file will be skipped. A
@@ -38,15 +36,15 @@ Test argument parser.
                         hashers should be enabled. "none" disables all
                         hashers. Use "--hashers list" or "--info" to list the
                         available hashers.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  else:
-    _EXPECTED_OUTPUT = """\
+    else:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--hasher_file_size_limit SIZE] [--hashers HASHER_LIST]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --hasher_file_size_limit SIZE, --hasher-file-size-limit SIZE
                         Define the maximum file size in bytes that hashers
                         should process. Any larger file will be skipped. A
@@ -58,42 +56,39 @@ Test argument parser.
                         hashers should be enabled. "none" disables all
                         hashers. Use "--hashers list" or "--info" to list the
                         available hashers.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  def testAddArguments(self):
-    """Tests the AddArguments function."""
-    argument_parser = argparse.ArgumentParser(
-        prog='cli_helper.py', description='Test argument parser.',
-        add_help=False,
-        formatter_class=cli_test_lib.SortedArgumentsHelpFormatter)
+    def testAddArguments(self):
+        """Tests the AddArguments function."""
+        argument_parser = self._GetTestArgumentParser("cli_helper.py")
 
-    hashers.HashersArgumentsHelper.AddArguments(argument_parser)
+        hashers.HashersArgumentsHelper.AddArguments(argument_parser)
 
-    output = self._RunArgparseFormatHelp(argument_parser)
-    self.assertEqual(output, self._EXPECTED_OUTPUT)
+        output = self._RunArgparseFormatHelp(argument_parser)
+        self.assertEqual(output, self._EXPECTED_OUTPUT)
 
-  def testParseOptions(self):
-    """Tests the ParseOptions function."""
-    options = cli_test_lib.TestOptions()
-    options.hashers = 'sha1'
-    options.hasher_file_size_limit = 0
+    def testParseOptions(self):
+        """Tests the ParseOptions function."""
+        options = cli_test_lib.TestOptions()
+        options.hashers = "sha1"
+        options.hasher_file_size_limit = 0
 
-    test_tool = tools.CLITool()
-    hashers.HashersArgumentsHelper.ParseOptions(options, test_tool)
+        test_tool = tools.CLITool()
+        hashers.HashersArgumentsHelper.ParseOptions(options, test_tool)
 
-    self.assertEqual(test_tool._hasher_names_string, options.hashers)
+        self.assertEqual(test_tool._hasher_names_string, options.hashers)
 
-    with self.assertRaises(errors.BadConfigObject):
-      hashers.HashersArgumentsHelper.ParseOptions(options, None)
+        with self.assertRaises(errors.BadConfigObject):
+            hashers.HashersArgumentsHelper.ParseOptions(options, None)
 
-    with self.assertRaises(errors.BadConfigOption):
-      options.hasher_file_size_limit = 'bogus'
-      hashers.HashersArgumentsHelper.ParseOptions(options, test_tool)
+        with self.assertRaises(errors.BadConfigOption):
+            options.hasher_file_size_limit = "bogus"
+            hashers.HashersArgumentsHelper.ParseOptions(options, test_tool)
 
-    with self.assertRaises(errors.BadConfigOption):
-      options.hasher_file_size_limit = -1
-      hashers.HashersArgumentsHelper.ParseOptions(options, test_tool)
+        with self.assertRaises(errors.BadConfigOption):
+            options.hasher_file_size_limit = -1
+            hashers.HashersArgumentsHelper.ParseOptions(options, test_tool)
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

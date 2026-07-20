@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Imports for the Windows Registry parser."""
 
 from plaso.parsers.winreg_plugins import amcache
@@ -7,6 +6,7 @@ from plaso.parsers.winreg_plugins import bagmru
 from plaso.parsers.winreg_plugins import bam
 from plaso.parsers.winreg_plugins import ccleaner
 from plaso.parsers.winreg_plugins import default
+from plaso.parsers.winreg_plugins import diagnosed_applications
 from plaso.parsers.winreg_plugins import lfu
 from plaso.parsers.winreg_plugins import motherboard_info
 from plaso.parsers.winreg_plugins import mountpoints
@@ -26,6 +26,7 @@ from plaso.parsers.winreg_plugins import task_scheduler
 from plaso.parsers.winreg_plugins import terminal_server
 from plaso.parsers.winreg_plugins import timezone
 from plaso.parsers.winreg_plugins import typedurls
+from plaso.parsers.winreg_plugins import typedurlstime
 from plaso.parsers.winreg_plugins import usb
 from plaso.parsers.winreg_plugins import usbstor
 from plaso.parsers.winreg_plugins import userassist

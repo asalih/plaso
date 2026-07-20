@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the nsrlsvr analysis plugin CLI arguments helper."""
 
-import argparse
 import sys
 import unittest
 
@@ -14,22 +12,21 @@ from tests.cli import test_lib as cli_test_lib
 from tests.cli.helpers import test_lib
 
 
-class NsrlsvrAnalysisArgumentsHelperTest(
-    test_lib.AnalysisPluginArgumentsHelperTest):
-  """Tests the nsrlsvr analysis plugin CLI arguments helper."""
+class NsrlsvrAnalysisArgumentsHelperTest(test_lib.AnalysisPluginArgumentsHelperTest):
+    """Tests the nsrlsvr analysis plugin CLI arguments helper."""
 
-  # pylint: disable=no-member,protected-access
+    # pylint: disable=no-member,protected-access
 
-  _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
+    _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
 
-  if _PYTHON3_13_OR_LATER:
-    _EXPECTED_OUTPUT = """\
+    if _PYTHON3_13_OR_LATER:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--nsrlsvr-hash HASH] [--nsrlsvr-host HOST]
                      [--nsrlsvr-label LABEL] [--nsrlsvr-port PORT]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --nsrlsvr-hash, --nsrlsvr_hash HASH
                         Type of hash to use to query nsrlsvr instance, the
                         default is: md5. Supported options: md5, sha1
@@ -42,16 +39,16 @@ Test argument parser.
   --nsrlsvr-port, --nsrlsvr_port PORT
                         Port number of the nsrlsvr instance to query, the
                         default is: 9120.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  else:
-    _EXPECTED_OUTPUT = """\
+    else:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--nsrlsvr-hash HASH] [--nsrlsvr-host HOST]
                      [--nsrlsvr-label LABEL] [--nsrlsvr-port PORT]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --nsrlsvr-hash HASH, --nsrlsvr_hash HASH
                         Type of hash to use to query nsrlsvr instance, the
                         default is: md5. Supported options: md5, sha1
@@ -64,43 +61,39 @@ Test argument parser.
   --nsrlsvr-port PORT, --nsrlsvr_port PORT
                         Port number of the nsrlsvr instance to query, the
                         default is: 9120.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  def testAddArguments(self):
-    """Tests the AddArguments function."""
-    argument_parser = argparse.ArgumentParser(
-        prog='cli_helper.py',
-        description='Test argument parser.', add_help=False,
-        formatter_class=cli_test_lib.SortedArgumentsHelpFormatter)
+    def testAddArguments(self):
+        """Tests the AddArguments function."""
+        argument_parser = self._GetTestArgumentParser("cli_helper.py")
 
-    nsrlsvr_analysis.NsrlsvrAnalysisArgumentsHelper.AddArguments(
-        argument_parser)
+        nsrlsvr_analysis.NsrlsvrAnalysisArgumentsHelper.AddArguments(argument_parser)
 
-    output = self._RunArgparseFormatHelp(argument_parser)
-    self.assertEqual(output, self._EXPECTED_OUTPUT)
+        output = self._RunArgparseFormatHelp(argument_parser)
+        self.assertEqual(output, self._EXPECTED_OUTPUT)
 
-  def testParseOptions(self):
-    """Tests the ParseOptions function."""
-    options = cli_test_lib.TestOptions()
-    analysis_plugin = nsrlsvr.NsrlsvrAnalysisPlugin()
+    def testParseOptions(self):
+        """Tests the ParseOptions function."""
+        options = cli_test_lib.TestOptions()
+        analysis_plugin = nsrlsvr.NsrlsvrAnalysisPlugin()
 
-    options.nsrlsvr_hash = 'sha1'
-    options.nsrlsvr_host = '127.0.0.1'
-    options.nsrlsvr_port = 9120
-    options.nsrlsvr_label = 'NSRLSVR'
+        options.nsrlsvr_hash = "sha1"
+        options.nsrlsvr_host = "127.0.0.1"
+        options.nsrlsvr_port = 9120
+        options.nsrlsvr_label = "NSRLSVR"
 
-    with self.assertRaises(errors.BadConfigOption):
-      nsrlsvr_analysis.NsrlsvrAnalysisArgumentsHelper.ParseOptions(
-          options, analysis_plugin)
+        with self.assertRaises(errors.BadConfigOption):
+            nsrlsvr_analysis.NsrlsvrAnalysisArgumentsHelper.ParseOptions(
+                options, analysis_plugin
+            )
 
-    self.assertEqual(analysis_plugin._label, 'NSRLSVR')
-    self.assertEqual(analysis_plugin._host, '127.0.0.1')
-    self.assertEqual(analysis_plugin._port, 9120)
+        self.assertEqual(analysis_plugin._label, "NSRLSVR")
+        self.assertEqual(analysis_plugin._host, "127.0.0.1")
+        self.assertEqual(analysis_plugin._port, 9120)
 
-    with self.assertRaises(errors.BadConfigObject):
-      nsrlsvr_analysis.NsrlsvrAnalysisArgumentsHelper.ParseOptions(
-          options, None)
+        with self.assertRaises(errors.BadConfigObject):
+            nsrlsvr_analysis.NsrlsvrAnalysisArgumentsHelper.ParseOptions(options, None)
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

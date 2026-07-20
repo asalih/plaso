@@ -48,27 +48,25 @@ Name | Description
 --- | ---
 date | The date of the event formatted as "YYYY-MM-DD" or "0000-00-00" on error
 datetime | The date and time of the event in ISO 8601 format in microseconds or "0000-00-00T00:00:00.000000+00:00" on error
-description | The event message string as defined by the message formatter
-description_short | The short event message string as defined by the message formatter
 display_name | Human readable representation of the path specification
-filename | The "filename" attribute if present in the event data, otherwise derived from the path specification
-host | The hostname derived by pre-processing
-hostname | The hostname derived by pre-processing
-inode | The "inode" attribute if present in the event data, otherwise derived from the file system identifier (such as inode, MFT entry) in the path specification
+filename | The "filename" attribute if present in the event data. Will fallback to the filename derived from the event data stream path specification, if the option "--output-fallback-path" is enabled.
+host | Equivalent to the hostname field
+hostname | The "hostname" attribute if present in the event data. Will fallback to the hostname derived by pre-processing, if the option "--output-fallback-hostname" is enabled.
+inode | The "inode" attribute if present in the event data. Will fallback to the file system identifier (such as inode, MFT entry) derived from the event data stream path specification, if the option "--output-fallback-path" is enabled.
 macb | MACB (Modification, Access, Change, Birth) group representation
 message | The event message string as defined by the message formatter
 message_short | The short event message string as defined by the message formatter
-source | The short event source as defined by `data/sources.config`
-sourcetype | The event source as defined by `data/sources.config`, equivalent to source_long
-source_long | The event source as defined by `data/sources.config`
+source | The short event source as defined by the formatter (`data/formatters/*.yaml`)
+sourcetype | Equivalent to the source_long field
+source_long | The event source as defined by the formatter (`data/formatters/*.yaml`)
 tag | The labels defined by event tags
 time | The time of the event in seconds formatted as "HH:MM:SS" or "--:--:--" on error
 timestamp_desc | Indication of what the event time represents such as Creation Time or Program Execution Duration
 timezone | Time zone indicator
-type | Indication of what the event time represents such as Creation Time or Program Execution Duration, equivalent to timestamp_desc
-user | The username derived by pre-processing, equivalent to username
-username | The username derived by pre-processing
-zone | Time zone indicator, equivalent to timezone
+type | Equivalent to the timestamp_desc field
+user | Equivalent to the username field
+username | The "username" attribute if present in the event data. Will fallback to trying to resolve the username based on the "user_sid" attribute and user accounts derived by pre-processing.
+zone | Equivalent to the timezone field
 
 Note that the `--dynamic-time` output option will change the format of the
 datetime output field to use value appropriate granularity, for example seconds
@@ -82,8 +80,8 @@ support the dynamic time option.
 Name | Description
 --- | ---
 display_name | Human readable representation of the path specification
-filename | The "filename" attribute if present in the event data, otherwise derived from the path specification
-inode | The "inode" attribute if present in the event data, otherwise derived from the file system identifier (such as inode, MFT entry) in the path specification
+filename | The "filename" attribute if present in the event data. Will fallback to the filename derived from the event data stream path specification, if the option "--output-fallback-path" is enabled.
+inode | The "inode" attribute if present in the event data. Will fallback to the file system identifier (such as inode, MFT entry) derived from the event data stream path specification, if the option "--output-fallback-path" is enabled.
 message | The event message string as defined by the message formatter
 pathspec | JSON serialized path specification
 parser | Chain of parsers that generated the event.
@@ -95,12 +93,12 @@ timestamp_desc | Indication of what the event time represents such as Creation T
 Name | Description
 --- | ---
 display_name | Human readable representation of the path specification
-filename | The "filename" attribute if present in the event data, otherwise derived from the path specification
-inode | The "inode" attribute if present in the event data, otherwise derived from the file system identifier (such as inode, MFT entry) in the path specification
+filename | The "filename" attribute if present in the event data. Will fallback to the filename derived from the event data stream path specification, if the option "--output-fallback-path" is enabled.
+inode | The "inode" attribute if present in the event data. Will fallback to the file system identifier (such as inode, MFT entry) derived from the event data stream path specification, if the option "--output-fallback-path" is enabled.
 message | The event message string as defined by the message formatter
 parser | Chain of parsers that generated the event.
-short_source | The short event source as defined by `data/sources.config`
-source_long | The event source as defined by `data/sources.config`
+short_source | The short event source as defined by the formatter (`data/formatters/*.yaml`)
+source_long | The event source as defined by the formatter (`data/formatters/*.yaml`)
 timestamp_desc | Indication of what the event time represents such as Creation Time or Program Execution Duration
 
 ### OpenSearch runtime fields
@@ -110,21 +108,10 @@ Name | Description
 display_name | Human readable representation of the path specification
 message | The event message string as defined by the message formatter
 parser | Chain of parsers that generated the event.
-short_source | The short event source as defined by `data/sources.config`
-source_long | The event source as defined by `data/sources.config`
+short_source | The short event source as defined by the formatter (`data/formatters/*.yaml`)
+source_long | The event source as defined by the formatter (`data/formatters/*.yaml`)
 tag | The labels defined by event tags
 timestamp_desc | Indication of what the event time represents such as Creation Time or Program Execution Duration
-
-## Output field formatting
-
-### Source fields
-
-As of Plaso 20200916 the value of the long and short source fields are defined
-in `data/sources.config`. This file contains 3 tab separated values:
-
-* data_type; event data type.
-* short_source; short source identifier that corresponds with the l2tcsv and tln source field.
-* source; source identifier that corresponds with the l2tcsv sourcetype field.
 
 ## Message formatting
 
@@ -334,3 +321,5 @@ Flags helpers are defined as a set of attributes:
 * 20200916 Removed source types from formatters.
 * 20201220 Added support for boolean helpers.
 * 20201227 Added support for custom helpers.
+* 20221003 Removed `data/sources.config` in favor of formatter configuration (`data/formatters/*.yaml`).
+* 20260703 description and description_short are no longer used as dynamic output field names.

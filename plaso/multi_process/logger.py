@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """The multi-processing sub module logger."""
 
 import logging
 
-
-_logger = logging.getLogger('multi_process')
+_logger = logging.getLogger("multi_process")
 
 # Mimic the logging module interface.
 critical = _logger.critical

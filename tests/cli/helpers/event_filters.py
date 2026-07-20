@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the event filters CLI arguments helper."""
 
-import argparse
 import sys
 import unittest
 
@@ -14,14 +12,14 @@ from tests.cli import test_lib as cli_test_lib
 
 
 class EventFiltersArgumentsHelperTest(cli_test_lib.CLIToolTestCase):
-  """Tests for the event filters CLI arguments helper."""
+    """Tests for the event filters CLI arguments helper."""
 
-  # pylint: disable=no-member,protected-access
+    # pylint: disable=no-member,protected-access
 
-  _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
+    _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
 
-  if _PYTHON3_13_OR_LATER:
-    _EXPECTED_OUTPUT = """\
+    if _PYTHON3_13_OR_LATER:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--slice DATE_TIME] [--slice_size SLICE_SIZE] [--slicer]
                      [FILTER]
 
@@ -34,7 +32,7 @@ positional arguments:
                         /plaso.readthedocs.io/en/latest/sources/user/Event-
                         filters.html
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --slice DATE_TIME     Date and time to create a time slice around. This
                         parameter, if defined, will display all events that
                         happened X minutes before and after the defined date,
@@ -54,10 +52,10 @@ positional arguments:
                         parameter, if defined will save all X events before
                         and after a filter match has been made. X is defined
                         by the --slice_size parameter.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  else:
-    _EXPECTED_OUTPUT = """\
+    else:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--slice DATE_TIME] [--slice_size SLICE_SIZE] [--slicer]
                      [FILTER]
 
@@ -70,7 +68,7 @@ positional arguments:
                         /plaso.readthedocs.io/en/latest/sources/user/Event-
                         filters.html
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --slice DATE_TIME     Date and time to create a time slice around. This
                         parameter, if defined, will display all events that
                         happened X minutes before and after the defined date,
@@ -90,61 +88,58 @@ positional arguments:
                         parameter, if defined will save all X events before
                         and after a filter match has been made. X is defined
                         by the --slice_size parameter.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  def testAddArguments(self):
-    """Tests the AddArguments function."""
-    argument_parser = argparse.ArgumentParser(
-        prog='cli_helper.py', description='Test argument parser.',
-        add_help=False,
-        formatter_class=cli_test_lib.SortedArgumentsHelpFormatter)
+    def testAddArguments(self):
+        """Tests the AddArguments function."""
+        argument_parser = self._GetTestArgumentParser("cli_helper.py")
 
-    event_filters.EventFiltersArgumentsHelper.AddArguments(argument_parser)
+        event_filters.EventFiltersArgumentsHelper.AddArguments(argument_parser)
 
-    output = self._RunArgparseFormatHelp(argument_parser)
+        output = self._RunArgparseFormatHelp(argument_parser)
 
-    self.assertEqual(output, self._EXPECTED_OUTPUT)
+        self.assertEqual(output, self._EXPECTED_OUTPUT)
 
-  def testParseOptions(self):
-    """Tests the ParseOptions function."""
-    options = cli_test_lib.TestOptions()
-    options.filter = 'event.timestamp == 0'
-    options.slice = '2020-06-13T06:33:10'
-    options.slicer = False
+    def testParseOptions(self):
+        """Tests the ParseOptions function."""
+        options = cli_test_lib.TestOptions()
+        options.filter = "event.timestamp == 0"
+        options.slice = "2020-06-13T06:33:10"
+        options.slicer = False
 
-    test_tool = tools.CLITool()
-    event_filters.EventFiltersArgumentsHelper.ParseOptions(options, test_tool)
+        test_tool = tools.CLITool()
+        event_filters.EventFiltersArgumentsHelper.ParseOptions(options, test_tool)
 
-    self.assertEqual(test_tool._event_filter_expression, options.filter)
-    self.assertIsNotNone(test_tool._event_filter)
+        self.assertEqual(test_tool._event_filter_expression, options.filter)
+        self.assertIsNotNone(test_tool._event_filter)
 
-    with self.assertRaises(errors.BadConfigObject):
-      event_filters.EventFiltersArgumentsHelper.ParseOptions(options, None)
+        with self.assertRaises(errors.BadConfigObject):
+            event_filters.EventFiltersArgumentsHelper.ParseOptions(options, None)
 
-    options.filter = 'BOGUS'
+        options.filter = "BOGUS"
 
-    with self.assertRaises(errors.BadConfigOption):
-      event_filters.EventFiltersArgumentsHelper.ParseOptions(options, test_tool)
+        with self.assertRaises(errors.BadConfigOption):
+            event_filters.EventFiltersArgumentsHelper.ParseOptions(options, test_tool)
 
-    options.filter = 'event.timestamp == 0'
-    options.slice = '2020-06-13 06:33:10'
+        options.filter = "event.timestamp == 0"
+        options.slice = "2020-06-13 06:33:10"
 
-    with self.assertRaises(errors.BadConfigOption):
-      event_filters.EventFiltersArgumentsHelper.ParseOptions(options, test_tool)
+        with self.assertRaises(errors.BadConfigOption):
+            event_filters.EventFiltersArgumentsHelper.ParseOptions(options, test_tool)
 
-    options.slice = 'YEAR-06-13T06:33:10'
+        options.slice = "YEAR-06-13T06:33:10"
 
-    with self.assertRaises(errors.BadConfigOption):
-      event_filters.EventFiltersArgumentsHelper.ParseOptions(options, test_tool)
+        with self.assertRaises(errors.BadConfigOption):
+            event_filters.EventFiltersArgumentsHelper.ParseOptions(options, test_tool)
 
-    options.slice = '2020-06-13T06:33:10'
-    options.slicer = True
+        options.slice = "2020-06-13T06:33:10"
+        options.slicer = True
 
-    with self.assertRaises(errors.BadConfigOption):
-      event_filters.EventFiltersArgumentsHelper.ParseOptions(options, test_tool)
+        with self.assertRaises(errors.BadConfigOption):
+            event_filters.EventFiltersArgumentsHelper.ParseOptions(options, test_tool)
 
-    # TODO: improve test coverage.
+        # TODO: improve test coverage.
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*- #
 """Tests for the bash history text parser plugin."""
 
+import io
 import unittest
 
-from dfvfs.helpers import fake_file_system_builder
-
+from plaso.parsers import mediator as parsers_mediator
 from plaso.parsers import text_parser
 from plaso.parsers.text_plugins import bash_history
 
@@ -13,124 +12,123 @@ from tests.parsers.text_plugins import test_lib
 
 
 class BashHistoryTextPluginTest(test_lib.TextPluginTestCase):
-  """Testd for the bash history text parser plugin."""
+    """Testd for the bash history text parser plugin."""
 
-  def testCheckRequiredFormat(self):
-    """Tests for the CheckRequiredFormat method."""
-    plugin = bash_history.BashHistoryTextPlugin()
+    def testCheckRequiredFormat(self):
+        """Tests for the CheckRequiredFormat function."""
+        plugin = bash_history.BashHistoryTextPlugin()
+        parser_mediator = parsers_mediator.ParserMediator()
 
-    # Check a bash history file.
-    file_system_builder = fake_file_system_builder.FakeFileSystemBuilder()
-    file_system_builder.AddFile('/file.txt', (
-        b'#1380630977\n'
-        b'/usr/lib/plaso\n'))
+        # Check a synchronized bash history file.
+        file_object = io.BytesIO(b"#1380630977\n" b"/usr/lib/plaso\n")
+        text_reader = text_parser.EncodedTextReader(file_object)
+        text_reader.ReadLines()
 
-    file_entry = file_system_builder.file_system.GetFileEntryByPath('/file.txt')
+        self.assertTrue(plugin.CheckRequiredFormat(parser_mediator, text_reader))
 
-    parser_mediator = self._CreateParserMediator(None, file_entry=file_entry)
+        # Check a desynchronized bash history file.
+        file_object = io.BytesIO(b"/sbin/reboot\n" b"#1380630977\n" b"/usr/lib/plaso\n")
+        text_reader = text_parser.EncodedTextReader(file_object)
+        text_reader.ReadLines()
 
-    file_object = file_entry.GetFileObject()
-    text_reader = text_parser.EncodedTextReader(file_object)
-    text_reader.ReadLines()
+        self.assertTrue(plugin.CheckRequiredFormat(parser_mediator, text_reader))
 
-    result = plugin.CheckRequiredFormat(parser_mediator, text_reader)
-    self.assertTrue(result)
+        # Check non-matching format.
+        file_object = io.BytesIO(
+            b"Jan 22 07:52:33 myhostname.myhost.com client[30840]: INFO No new "
+            b"content in image.dd.\n"
+        )
+        text_reader = text_parser.EncodedTextReader(file_object)
+        text_reader.ReadLines()
 
-    # Check a desynchronized bash history file.
-    file_system_builder = fake_file_system_builder.FakeFileSystemBuilder()
-    file_system_builder.AddFile('/file.txt', (
-        b'/sbin/reboot\n'
-        b'#1380630977\n'
-        b'/usr/lib/plaso\n'))
+        self.assertFalse(plugin.CheckRequiredFormat(parser_mediator, text_reader))
 
-    file_entry = file_system_builder.file_system.GetFileEntryByPath('/file.txt')
+    def testProcess(self):
+        """Tests the Process function."""
+        plugin = bash_history.BashHistoryTextPlugin()
+        storage_writer = self._ParseTextFileWithPlugin(["bash_history"], plugin)
 
-    parser_mediator = self._CreateParserMediator(None, file_entry=file_entry)
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 4)
 
-    file_object = file_entry.GetFileObject()
-    text_reader = text_parser.EncodedTextReader(file_object)
-    text_reader.ReadLines()
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-    result = plugin.CheckRequiredFormat(parser_mediator, text_reader)
-    self.assertTrue(result)
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-  def testProcess(self):
-    """Tests the Process function."""
-    plugin = bash_history.BashHistoryTextPlugin()
-    storage_writer = self._ParseTextFileWithPlugin(['bash_history'], plugin)
+        expected_event_values = {
+            "command": "/usr/lib/plaso",
+            "data_type": "bash:history:entry",
+            "written_time": "2013-10-01T12:36:17+00:00",
+        }
 
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 4)
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
+        # Test multi line.
+        expected_event_values = {
+            "command": (
+                'binary argument1 "--params=\\ ' 'param1=foo, param2=bar " argument2'
+            ),
+            "data_type": "bash:history:entry",
+            "written_time": "2021-06-10T22:30:36+00:00",
+        }
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 3)
+        self.CheckEventData(event_data, expected_event_values)
 
-    expected_event_values = {
-        'command': '/usr/lib/plaso',
-        'data_type': 'bash:history:entry',
-        'written_time': '2013-10-01T12:36:17+00:00'}
+    def testProcessWithDesynchronizedFile(self):
+        """Tests the Process function with a desynchronized file.
 
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
+        A desynchronized bash history file will start with the command line instead of
+        the timestamp.
+        """
+        plugin = bash_history.BashHistoryTextPlugin()
+        storage_writer = self._ParseTextFileWithPlugin(["bash_history_desync"], plugin)
 
-    # Test multi line.
-    expected_event_values = {
-        'command': (
-            'binary argument1 "--params=\\ '
-            'param1=foo, param2=bar " argument2'),
-        'data_type': 'bash:history:entry',
-        'written_time': '2021-06-10T22:30:36+00:00'}
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 5)
 
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 3)
-    self.CheckEventData(event_data, expected_event_values)
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-  def testProcessWithDesynchronizedFile(self):
-    """Tests the Process function with a desynchronized file.
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-    A desynchronized bash history file will start with the command line instead
-    of the timestamp.
-    """
-    plugin = bash_history.BashHistoryTextPlugin()
-    storage_writer = self._ParseTextFileWithPlugin(
-        ['bash_history_desync'], plugin)
+        expected_event_values = {
+            "command": "/usr/lib/plaso",
+            "data_type": "bash:history:entry",
+            "written_time": "2013-10-01T12:36:17+00:00",
+        }
 
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 5)
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 1)
+        self.CheckEventData(event_data, expected_event_values)
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
+        # Test multi line.
+        expected_event_values = {
+            "command": (
+                'binary argument1 "--params=\\ ' 'param1=foo, param2=bar " argument2'
+            ),
+            "data_type": "bash:history:entry",
+            "written_time": "2021-06-10T22:30:36+00:00",
+        }
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    expected_event_values = {
-        'command': '/usr/lib/plaso',
-        'data_type': 'bash:history:entry',
-        'written_time': '2013-10-01T12:36:17+00:00'}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 1)
-    self.CheckEventData(event_data, expected_event_values)
-
-    # Test multi line.
-    expected_event_values = {
-        'command': (
-            'binary argument1 "--params=\\ '
-            'param1=foo, param2=bar " argument2'),
-        'data_type': 'bash:history:entry',
-        'written_time': '2021-06-10T22:30:36+00:00'}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 4)
-    self.CheckEventData(event_data, expected_event_values)
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 4)
+        self.CheckEventData(event_data, expected_event_values)
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

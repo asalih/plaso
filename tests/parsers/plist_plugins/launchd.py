@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the MacOS launchd plist plugin."""
 
 import unittest
@@ -10,94 +9,105 @@ from tests.parsers.plist_plugins import test_lib
 
 
 class MacOSLaunchdPlistPluginTest(test_lib.PlistPluginTestCase):
-  """Tests for the MacOS launchd plist plugin."""
+    """Tests for the MacOS launchd plist plugin."""
 
-  def testProcess(self):
-    """Tests the Process function."""
-    plist_name = 'launchd.plist'
+    def testProcess(self):
+        """Tests the Process function."""
+        plist_name = "launchd.plist"
 
-    plugin = launchd.MacOSLaunchdPlistPlugin()
-    storage_writer = self._ParsePlistFileWithPlugin(
-        plugin, [plist_name], plist_name)
+        plugin = launchd.MacOSLaunchdPlistPlugin()
+        storage_writer = self._ParsePlistFileWithPlugin(
+            plugin, ["plist", plist_name], plist_name
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 1)
 
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 1)
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
+        expected_event_values = {
+            "data_type": "macos:launchd:entry",
+            "group_name": "nobody",
+            "name": "com.foobar.test",
+            "program": "/Test --flag arg1",
+            "username": "nobody",
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
 
-    expected_event_values = {
-        'data_type': 'macos:launchd:entry',
-        'group_name': 'nobody',
-        'name': 'com.foobar.test',
-        'program': '/Test --flag arg1',
-        'user_name': 'nobody'}
+    def testProcessMinimal(self):
+        """Tests the Process function."""
+        plist_name = "launchd.minimal.plist"
 
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
+        plugin = launchd.MacOSLaunchdPlistPlugin()
+        storage_writer = self._ParsePlistFileWithPlugin(
+            plugin, ["plist", plist_name], plist_name
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 1)
 
-  def testProcessMinimal(self):
-    """Tests the Process function."""
-    plist_name = 'launchd.minimal.plist'
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-    plugin = launchd.MacOSLaunchdPlistPlugin()
-    storage_writer = self._ParsePlistFileWithPlugin(
-        plugin, [plist_name], plist_name)
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 1)
+        expected_event_values = {
+            "data_type": "macos:launchd:entry",
+            "name": "foo",
+            "program": "/usr/bin/true",
+            "username": None,
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
+    def testProcessNoProgram(self):
+        """Tests the Process function."""
+        plist_name = "launchd.noprogram.plist"
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
+        plugin = launchd.MacOSLaunchdPlistPlugin()
+        storage_writer = self._ParsePlistFileWithPlugin(
+            plugin, ["plist", plist_name], plist_name
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 1)
 
-    expected_event_values = {
-        'data_type': 'macos:launchd:entry',
-        'name': 'foo',
-        'program': '/usr/bin/true'}
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-  def testProcessNoProgram(self):
-    """Tests the Process function."""
-    plist_name = 'launchd.noprogram.plist'
-
-    plugin = launchd.MacOSLaunchdPlistPlugin()
-    storage_writer = self._ParsePlistFileWithPlugin(
-        plugin, [plist_name], plist_name)
-
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 1)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    expected_event_values = {
-        'data_type': 'macos:launchd:entry',
-        'name': 'foo',
-        'program': '/usr/bin/true'}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
+        expected_event_values = {
+            "data_type": "macos:launchd:entry",
+            "name": "foo",
+            "program": "/usr/bin/true",
+            "username": None,
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

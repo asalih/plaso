@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """The serializer sub module logger."""
 
 import logging
 
-
-_logger = logging.getLogger('serializer')
+_logger = logging.getLogger("serializer")
 
 # Mimic the logging module interface.
 critical = _logger.critical

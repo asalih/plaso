@@ -13,12 +13,14 @@ chrome_preferences | Parser for Google Chrome Preferences files.
 cups_ipp | Parser for CUPS IPP files.
 custom_destinations | Parser for Custom destinations jump list (.customDestinations-ms) files.
 czip | Parser for Compound ZIP files.
+discord_ios | Parser for iOS discord message.
 esedb | Parser for Extensible Storage Engine (ESE) Database File (EDB) format.
 filestat | Parser for file system stat information.
 firefox_cache | Parser for Mozilla Firefox Cache version 1 file (version 31 or earlier).
 firefox_cache2 | Parser for Mozilla Firefox Cache version 2 file (version 32 or later).
 fish_history | Parser for Fish history files.
 fseventsd | Parser for MacOS File System Events Disk Log Stream (fseventsd) files.
+ivanti_vc0 | Parser for Ivanti Connect Secure (.vc0) log files.
 java_idx | Parser for Java WebStart Cache IDX files.
 jsonl | Parser for JSON-L log files.
 lnk | Parser for Windows Shortcut (LNK) files.
@@ -113,6 +115,9 @@ airport | Parser for Airport plist files.
 apple_id | Parser for Apple account information plist files.
 ios_carplay | Parser for Apple iOS Car Play application plist files.
 ios_identityservices | Parser for Idstatuscache plist files.
+ios_mobile_backup | Parser for Apple iOS Mobile Backup plist files.
+ios_siminfo | Parser for iOS SIM Info plist files.
+ios_wifi_known_networks | Parser for Apple iOS WiFi Known Networks plist files.
 ipod_device | Parser for iPod, iPad and iPhone plist files.
 launchd_plist | Parser for Launchd plist files.
 macos_background_items_plist | Parser for Mac OS backgrounditems.btm or BackgroundItems-v[3-9].btm plist files.
@@ -134,10 +139,15 @@ time_machine | Parser for MacOS TimeMachine plist files.
 
 Name | Description
 --- | ---
-android_app_usage | Parser for Android app_usage SQLite database (app_usage) files.
+android_airtag | Parser for AirGuard AirTag Tracker on SQLite database files.
+android_app_launch | Parser for Android application launch SQLite database (SimpleStorage) files.
+android_app_usage | Parser for Android application usage SQLite database (app_usage) files.
 android_calls | Parser for Android call history SQLite database (contacts2.db) files.
+android_communication_information | Parser for Android communication information SQLite database files.
+android_native_downloads | Parser for Android native downloads SQLite database (downloads.db) files.
 android_sms | Parser for Android text messages (SMS) SQLite database (mmssms.dbs) files.
 android_turbo | Parser for Android turbo SQLite database (turbo.db) files.
+android_viber_call | Parser for Android Viber call history SQLite database (viber_data) files.
 android_webview | Parser for Android WebView SQLite database files.
 android_webviewcache | Parser for Android WebViewCache SQLite database files.
 appusage | Parser for MacOS application usage SQLite database (application_usage.sqlite) files.
@@ -149,6 +159,7 @@ chrome_autofill | Parser for Google Chrome autofill SQLite database (Web Data) f
 chrome_extension_activity | Parser for Google Chrome extension activity SQLite database files.
 dropbox | Parser for Dropbox sync history database (sync_history.db) files.
 edge_load_statistics | Parser for SQLite database files.
+files_by_google | Parser for Files by Google SQLite database (files_master_database) files.
 firefox_10_cookies | Parser for Mozilla Firefox cookies SQLite database file version 10.
 firefox_118_downloads | Parser for Mozilla Firefox 118 downloads SQLite database (downloads.sqlite) files.
 firefox_2_cookies | Parser for Mozilla Firefox cookies SQLite database file version 2.
@@ -157,8 +168,13 @@ firefox_history | Parser for Mozilla Firefox history SQLite database (places.sql
 google_drive | Parser for Google Drive snapshot SQLite database (snapshot.db) files.
 hangouts_messages | Parser for Google Hangouts conversations SQLite database (babel.db) files.
 imessage | Parser for MacOS and iOS iMessage database (chat.db, sms.db) files.
-ios_datausage | Parser for iOS data usage SQLite databse (DataUsage.sqlite) file..
+instagram_ios | Parser for iOS Instagram threads SQLite database (9368974384.db) files.
+ios_accounts | Parser for iOS accounts SQLite database (Accounts3.db) files.
+ios_datausage | Parser for iOS data usage SQLite database (DataUsage.sqlite) files.
+ios_health | Parser for iOS Health SQLite database (healthdb_secure.sqlite) files.
+ios_imohdchat_message | Parser for IMO HD chat message SQLite database (IMODb2.sqlite) files.
 ios_netusage | Parser for iOS network usage SQLite database (netusage.sqlite) files.
+ios_notes | Parser for iOS Notes SQLite database files.
 ios_powerlog | Parser for iOS powerlog SQLite database (CurrentPowerlog.PLSQL) files.
 ios_screentime | Parser for iOS Screen Time SQLite database (RMAdminStore-Local.sqlite).
 kik_ios | Parser for iOS Kik messenger SQLite database (kik.sqlite) files.
@@ -188,8 +204,13 @@ Name | Description
 android_logcat | Parser for Android logcat files.
 apache_access | Parser for Apache access log (access.log) files.
 apt_history | Parser for Advanced Packaging Tool (APT) History log files.
+atlassian_bitbucket | Parser for Atlassian Bitbucket log files.
+atlassian_confluence | Parser for Atlassian Confluence log files.
+atlassian_jira | Parser for Atlassian Jira log files.
 aws_elb_access | Parser for AWS ELB Access log files.
 bash_history | Parser for Bash history files.
+bitbucket_access | Parser for Atlassian Bitbucket access log (atlassian-bitbucket-access.log) files.
+bitbucket_audit | Parser for Atlassian Bitbucket audit log (atlassian-bitbucket-audit.log) files.
 confluence_access | Parser for Confluence access log (access.log) files.
 cri_log | Parser for Container Runtime Interface log files.
 dpkg | Parser for Debian package manager log (dpkg.log) files.
@@ -198,6 +219,7 @@ googlelog | Parser for Google-formatted log files.
 ios_lockdownd | Parser for iOS lockdown daemon log.
 ios_logd | Parser for iOS sysdiagnose logd files.
 ios_sysdiag_log | Parser for iOS sysdiag log.
+jira_access | Parser for Jira access log (access.log) files.
 mac_appfirewall_log | Parser for MacOS Application firewall log (appfirewall.log) files.
 mac_securityd | Parser for MacOS security daemon (securityd) log files.
 mac_wifi | Parser for MacOS Wi-Fi log (wifi.log) files.
@@ -215,7 +237,7 @@ snort_fastlog | Parser for Snort3/Suricata fast-log alert log (fast.log) files.
 sophos_av | Parser for Sophos anti-virus log file (SAV.txt) files.
 syslog | Parser for System log (syslog) files.
 syslog_traditional | Parser for Traditional system log (syslog) files.
-teamviewer_application_log | Parser for TeamViewer application log file parser..
+teamviewer_application_log | Parser for TeamViewer application log file parser.
 teamviewer_connections_incoming | Parser for TeamViewer connections_incoming.txt log files.
 teamviewer_connections_outgoing | Parser for TeamViewer connections.txt log files.
 viminfo | Parser for Viminfo files.
@@ -235,6 +257,7 @@ appcompatcache | Parser for Application Compatibility Cache Registry data.
 bagmru | Parser for BagMRU (or ShellBags) Registry data.
 bam | Parser for Background Activity Moderator (BAM) Registry data.
 ccleaner | Parser for CCleaner Registry data.
+diagnosed_applications | Parser for Diagnosed Applications Registry data.
 explorer_mountpoints2 | Parser for Windows Explorer mount points Registry data.
 explorer_programscache | Parser for Windows Explorer Programs Cache Registry data.
 microsoft_office_mru | Parser for Microsoft Office MRU Registry data.
@@ -260,7 +283,8 @@ windows_services | Parser for Windows drivers and services Registry data.
 windows_shutdown | Parser for Windows last shutdown Registry data.
 windows_task_cache | Parser for Windows Task Scheduler cache Registry data.
 windows_timezone | Parser for Windows time zone Registry data.
-windows_typed_urls | Parser for Windows Explorer typed URLs Registry data.
+windows_typed_urls | Parser for Windows Explorer typed paths and URLs Registry data.
+windows_typed_urls_time | Parser for Windows Explorer typed URLs time Registry data.
 windows_usb_devices | Parser for Windows USB device Registry data.
 windows_usbstor_devices | Parser for Windows USB Plug And Play Manager USBStor Registry data.
 windows_version | Parser for Windows version (product) Registry data.
@@ -273,6 +297,7 @@ winreg_default | Parser for Windows Registry data.
 Name | Parsers and plugins
 --- | ---
 android | android_app_usage, chrome_cache, filestat, sqlite/android_app_usage, sqlite/android_calls, sqlite/android_sms, sqlite/android_turbo, sqlite/android_webview, sqlite/android_webviewcache, sqlite/chrome_8_history, sqlite/chrome_17_cookies, sqlite/chrome_27_history, sqlite/chrome_66_cookies, sqlite/skype
+atlassian | text/atlassian_confluence, text/atlassian_jira, text/confluence_access, text/jira_access
 ios | jsonl/ios_application_privacy, plist/ios_identityservices, sqlite/imessage, sqlite/ios_netusage, sqlite/ios_powerlog, sqlite/ios_screentime, sqlite/kik_ios, sqlite/twitter_ios, text/ios_lockdownd, text/ios_logd, text/ios_sysdiag_log
 linux | bencode, czip/oxml, jsonl/docker_container_config, jsonl/docker_container_log, jsonl/docker_layer_config, filestat, olecf, pls_recall, sqlite/google_drive, sqlite/skype, sqlite/zeitgeist, systemd_journal, text/apt_history, text/bash_history, text/dpkg, text/gdrive_synclog, text/googlelog, text/popularity_contest, text/selinux, text/syslog, text/syslog_traditional, text/vsftpd, text/xchatlog, text/xchatscrollback, text/zsh_extended_history, utmp, webhist
 macos | asl_log, bencode, bsm_log, cups_ipp, czip/oxml, filestat, fseventsd, mac_keychain, olecf, plist, spotlight_storedb, sqlite/appusage, sqlite/google_drive, sqlite/imessage, sqlite/ls_quarantine, sqlite/mac_document_versions, sqlite/mac_notes, sqlite/mackeeper_cache, sqlite/mac_knowledgec, sqlite/skype, text/bash_history, text/gdrive_synclog, text/mac_appfirewall_log, text/mac_securityd, text/mac_wifi, text/macos_launchd_log, text/syslog, text/syslog_traditional, text/zsh_extended_history, utmpx, webhist

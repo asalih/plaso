@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the analysis plugins CLI arguments helper."""
 
-import argparse
 import unittest
 
 from plaso.cli import tools
@@ -13,59 +11,54 @@ from tests.cli import test_lib as cli_test_lib
 
 
 class AnalysisPluginsArgumentsHelperTest(cli_test_lib.CLIToolTestCase):
-  """Tests for the analysis plugins CLI arguments helper."""
+    """Tests for the analysis plugins CLI arguments helper."""
 
-  # pylint: disable=no-member,protected-access
+    # pylint: disable=no-member,protected-access
 
-  _EXPECTED_OUTPUT = """\
+    _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--analysis PLUGIN_LIST]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --analysis PLUGIN_LIST
                         A comma separated list of analysis plugin names to be
                         loaded or "--analysis list" to see a list of available
                         plugins.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  def testAddArguments(self):
-    """Tests the AddArguments function."""
-    argument_parser = argparse.ArgumentParser(
-        prog='cli_helper.py', description='Test argument parser.',
-        add_help=False,
-        formatter_class=cli_test_lib.SortedArgumentsHelpFormatter)
+    def testAddArguments(self):
+        """Tests the AddArguments function."""
+        argument_parser = self._GetTestArgumentParser("cli_helper.py")
 
-    analysis_plugins.AnalysisPluginsArgumentsHelper.AddArguments(
-        argument_parser)
+        analysis_plugins.AnalysisPluginsArgumentsHelper.AddArguments(argument_parser)
 
-    output = self._RunArgparseFormatHelp(argument_parser)
-    self.assertEqual(output, self._EXPECTED_OUTPUT)
+        output = self._RunArgparseFormatHelp(argument_parser)
+        self.assertEqual(output, self._EXPECTED_OUTPUT)
 
-  def testParseOptions(self):
-    """Tests the ParseOptions function."""
-    options = cli_test_lib.TestOptions()
-    options.analysis_plugins = 'tagging'
+    def testParseOptions(self):
+        """Tests the ParseOptions function."""
+        options = cli_test_lib.TestOptions()
+        options.analysis_plugins = "tagging"
 
-    test_tool = tools.CLITool()
-    analysis_plugins.AnalysisPluginsArgumentsHelper.ParseOptions(
-        options, test_tool)
+        test_tool = tools.CLITool()
+        analysis_plugins.AnalysisPluginsArgumentsHelper.ParseOptions(options, test_tool)
 
-    self.assertEqual(test_tool._analysis_plugins, ['tagging'])
+        self.assertEqual(test_tool._analysis_plugins, ["tagging"])
 
-    with self.assertRaises(errors.BadConfigObject):
-      analysis_plugins.AnalysisPluginsArgumentsHelper.ParseOptions(
-          options, None)
+        with self.assertRaises(errors.BadConfigObject):
+            analysis_plugins.AnalysisPluginsArgumentsHelper.ParseOptions(options, None)
 
-    options.analysis_plugins = 'bogus'
+        options.analysis_plugins = "bogus"
 
-    with self.assertRaises(errors.BadConfigOption):
-      analysis_plugins.AnalysisPluginsArgumentsHelper.ParseOptions(
-          options, test_tool)
+        with self.assertRaises(errors.BadConfigOption):
+            analysis_plugins.AnalysisPluginsArgumentsHelper.ParseOptions(
+                options, test_tool
+            )
 
-    # TODO: add test for '--analysis list'
-    # TODO: improve test coverage.
+        # TODO: add test for '--analysis list'
+        # TODO: improve test coverage.
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

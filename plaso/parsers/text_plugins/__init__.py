@@ -1,11 +1,15 @@
-# -*- coding: utf-8 -*-
 """Imports for the text parser."""
 
 from plaso.parsers.text_plugins import android_logcat
 from plaso.parsers.text_plugins import apache_access
 from plaso.parsers.text_plugins import apt_history
+from plaso.parsers.text_plugins import atlassian_bitbucket
+from plaso.parsers.text_plugins import atlassian_confluence
+from plaso.parsers.text_plugins import atlassian_jira
 from plaso.parsers.text_plugins import aws_elb_access
 from plaso.parsers.text_plugins import bash_history
+from plaso.parsers.text_plugins import bitbucket_access
+from plaso.parsers.text_plugins import bitbucket_audit
 from plaso.parsers.text_plugins import confluence_access
 from plaso.parsers.text_plugins import cri
 from plaso.parsers.text_plugins import dpkg
@@ -15,6 +19,7 @@ from plaso.parsers.text_plugins import iis
 from plaso.parsers.text_plugins import ios_lockdownd
 from plaso.parsers.text_plugins import ios_logd
 from plaso.parsers.text_plugins import ios_sysdiag_log
+from plaso.parsers.text_plugins import jira_access
 from plaso.parsers.text_plugins import macos_appfirewall
 from plaso.parsers.text_plugins import macos_launchd
 from plaso.parsers.text_plugins import macos_securityd

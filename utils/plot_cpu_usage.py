@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Script to plot CPU usage from profiling data.
 
 This script requires the matplotlib and numpy Python modules.
@@ -10,110 +9,123 @@ import glob
 import os
 import sys
 
-import numpy
+import numpy  # pylint: disable=import-error
 
-from matplotlib import pyplot
+from matplotlib import pyplot  # pylint: disable=import-error
 
 
 def Main():
-  """The main program function.
+    """The main program function.
 
-  Returns:
-    bool: True if successful or False if not.
-  """
-  argument_parser = argparse.ArgumentParser(description=(
-      'Plots CPU usage from profiling data.'))
+    Returns:
+      int: exit code that is provided to sys.exit().
+    """
+    argument_parser = argparse.ArgumentParser(
+        description=("Plots CPU usage from profiling data.")
+    )
+    argument_parser.add_argument(
+        "--output",
+        dest="output_file",
+        type=str,
+        help=(
+            "path of the output file to write the graph to instead of using "
+            "interactive mode. The output format deduced from the extension "
+            "of the filename."
+        ),
+    )
+    argument_parser.add_argument(
+        "--process",
+        dest="process",
+        type=str,
+        default="",
+        help=("comma separated list of names of processes to graph."),
+    )
+    argument_parser.add_argument(
+        "--profiler",
+        dest="profiler",
+        type=str,
+        default="processing",
+        help=("name of the CPU profiler to graph."),
+    )
+    argument_parser.add_argument(
+        "profile_path",
+        type=str,
+        help=("path to the directory containing the profiling data."),
+    )
+    options = argument_parser.parse_args()
 
-  argument_parser.add_argument(
-      '--output', dest='output_file', type=str, help=(
-          'path of the output file to write the graph to instead of using '
-          'interactive mode. The output format deduced from the extension '
-          'of the filename.'))
+    if not os.path.isdir(options.profile_path):
+        print(f"No such directory: {options.profile_path:s}")
+        return 1
 
-  argument_parser.add_argument(
-      '--process', dest='process', type=str, default='', help=(
-          'comma separated list of names of processes to graph.'))
+    processes = []
+    if options.process:
+        processes = options.process.split(",")
 
-  argument_parser.add_argument(
-      '--profiler', dest='profiler', type=str, default='processing', help=(
-          'name of the CPU profiler to graph.'))
+    if options.profiler == "analyzers":
+        name_prefix = "analyzers"
+        name_suffix = "analyzers"
 
-  argument_parser.add_argument(
-      'profile_path', type=str, help=(
-          'path to the directory containing the profiling data.'))
+    elif options.profiler == "parsers":
+        name_prefix = "cputime"
+        name_suffix = "parsers"
 
-  options = argument_parser.parse_args()
+    elif options.profiler == "processing":
+        name_prefix = "processing"
+        name_suffix = "processing"
 
-  if not os.path.isdir(options.profile_path):
-    print(f'No such directory: {options.profile_path:s}')
-    return False
+    else:
+        print(f"Unsupported profiler: {options.profiler:s}")
+        return 1
 
-  processes = []
-  if options.process:
-    processes = options.process.split(',')
+    names = ["time", "name", "cpu"]
 
-  if options.profiler == 'analyzers':
-    name_prefix = 'analyzers'
-    name_suffix = 'analyzers'
+    glob_expression = os.path.join(
+        options.profile_path, f"{name_prefix:s}-*-{name_suffix:s}.csv.gz"
+    )
+    for csv_file_name in glob.glob(glob_expression):
+        process_name = os.path.basename(csv_file_name)
+        process_name = process_name.replace(f"{name_prefix:s}-", "")
+        process_name = process_name.replace(f"-{name_suffix:s}.csv.gz", "")
+        if processes and process_name not in processes:
+            continue
 
-  elif options.profiler == 'parsers':
-    name_prefix = 'cputime'
-    name_suffix = 'parsers'
+        data = numpy.genfromtxt(
+            csv_file_name,
+            delimiter="\t",
+            dtype=None,
+            encoding="utf-8",
+            names=names,
+            skip_header=1,
+        )
+        if data.size > 0:
+            for name in numpy.unique(data["name"]):
+                # Ignore process_sources since it is a single sample that contains
+                # the cumulative CPU time.
+                if options.profiler == "processing" and name == "process_sources":
+                    continue
 
-  elif options.profiler == 'processing':
-    name_prefix = 'processing'
-    name_suffix = 'processing'
+                data_by_name = numpy.extract(data["name"] == name, data)
+                label = "-".join([name, process_name])
+                pyplot.plot(data_by_name["time"], data_by_name["cpu"], label=label)
 
-  else:
-    print(f'Unsupported profiler: {options.profiler:s}')
-    return False
+    pyplot.title("CPU usage over time")
 
-  names = ['time', 'name', 'cpu']
+    pyplot.xlabel("Time")
+    pyplot.xscale("linear")
 
-  glob_expression = os.path.join(
-      options.profile_path, f'{name_prefix:s}-*-{name_suffix:s}.csv.gz')
-  for csv_file_name in glob.glob(glob_expression):
-    process_name = os.path.basename(csv_file_name)
-    process_name = process_name.replace(f'{name_prefix:s}-', '')
-    process_name = process_name.replace(f'-{name_suffix:s}.csv.gz', '')
-    if processes and process_name not in processes:
-      continue
+    pyplot.ylabel("Used CPU")
+    pyplot.yscale("linear")
 
-    data = numpy.genfromtxt(
-        csv_file_name, delimiter='\t', dtype=None, encoding='utf-8',
-        names=names, skip_header=1)
+    pyplot.legend()
 
-    if data.size > 0:
-      for name in numpy.unique(data['name']):
-        # Ignore process_sources since it is a single sample that contains
-        # the cumulative CPU time.
-        if options.profiler == 'processing' and name == 'process_sources':
-          continue
+    if options.output_file:
+        pyplot.savefig(options.output_file)
+    else:
+        pyplot.show()
 
-        data_by_name = numpy.extract(data['name'] == name, data)
-        label = '-'.join([name, process_name])
-        pyplot.plot(data_by_name['time'], data_by_name['cpu'], label=label)
-
-  pyplot.title('CPU usage over time')
-
-  pyplot.xlabel('Time')
-  pyplot.xscale('linear')
-
-  pyplot.ylabel('Used CPU')
-  pyplot.yscale('linear')
-
-  pyplot.legend()
-
-  if options.output_file:
-    pyplot.savefig(options.output_file)
-  else:
-    pyplot.show()
-
-  return True
+    return 0
 
 
-if __name__ == '__main__':
-  if not Main():
-    sys.exit(1)
-  else:
-    sys.exit(0)
+if __name__ == "__main__":
+    sys.exit(Main())

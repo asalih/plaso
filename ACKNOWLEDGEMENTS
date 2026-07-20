@@ -15,7 +15,6 @@ and others involved with these projects:
 * libyaml
 * the SleuthKit
 * pytsk
-* Hachoir (not included in binary release)
 
 Thanks to contributors (alphabetically based on last name):
 * Brian Baskin
@@ -129,40 +128,62 @@ Test data:
 * the contents of the *.exe and *.exe.mui files on bdetogo.raw has been
   filled with 0-byte values.
 
-Copied with permission from [the GRR project](https://github.com/google/grr).
+Copied with permission from [the GRR project](https://github.com/google/grr):
 * History
-* index.dat
 * places.sqlite
 
-Copied with permission granted by Jerome Marty.
+Copied with permission granted by Jerome Marty:
 * WUAUCLT.EXE-830BCC14.pf
 
-Copied with permission granted by Antoine Brodin.
+Copied with permission granted by Antoine Brodin:
 * PartitionsEx-WebCacheV01.dat
 * win10-Amcache.hve
 
-Copied with permission granted by Rob Lee.
 Copyright SANS Institute - Digital Forensics and Incident Response.
-* 1b4dd67f29cb1962.automaticDestinations-ms
-* 5afe4de1b92fc382.customDestinations-ms
+Copied with permission granted by Rob Lee:
 * Catalog1.edb
-* example.lnk
 * MFT
 * nfury_index.dat
 * nromanoff@stark-research-labs.com.pst
 * Ntuser.dat (multiple instances)
 * Outlook.NK2
 * SysEvent.Evt
-* System.evtx
-* Windows.edb
 
-Copied with permission granted by Ange Albertini.
+Copied with permission granted by Ange Albertini:
 * test_driver.sys
 
-Copied with permission from [the Greendale data set](https://github.com/dfirlabs/greendale-specimens).
+Copied with permission from [the Greendale data set](https://github.com/dfirlabs/greendale-specimens):
 * agdb/student-pc1/AgGlGlobalHistory.db
+* automaticDestinations-ms/student-pc1/1b4dd67f29cb1962.automaticDestinations-ms
+* customDestinations-ms/student-pc1/5afe4de1b92fc382.customDestinations-ms
+* esedb/student-pc1/Windows.edb
+* evtx/dc1/System.evtx
 * mdmp/student-pc1/WER1090.tmp.mdmp
+* msiecf/student-pc1/msiecf/Content.IE5/index.dat
+* msiecf/student-pc1/msiecf/History.IE5/index.dat
+* regf/studentpc8/NTUSER.DAT
+* regf/studentpc8/SAM
+* regf/studentpc8/SOFTWARE
+* regf/studentpc8/UsrClass.dat
 
-Generated with the [Windows PE/COFF resource file specimens project](https://github.com/dfirlabs/wrc-specimens).
+Generated with the [Windows PE/COFF resource file specimens project](https://github.com/dfirlabs/wrc-specimens):
 * wrc-test-wevt_template.dll
 
+Copied with permission from [the dtFormats project](https://github.com/libyal/dtformats):
+* utmp/utmp_aarch64
+* utmp/utmp_s390
+* utmp/utmp_x86_64
+
+Copied with permission from [Digital Corpora](https://digitalcorpora.org/):
+* 23AAD8D4-D632-4F99-8E44-152AAB8FA9D6
+* android/attd_db
+* android/burners.sqlite
+* android/files_master_database
+* android/viber_data
+* ios/9368974384.db
+* ios/Accounts3.sqlite
+* ios/com.apple.commcenter.data.plist
+* ios/com.apple.MobileBackup.plist
+* ios/healthdb_secure_iOS_13_4_1.sqlite
+* ios/IMODb2.sqlite
+* ios/NoteStore.sqlite

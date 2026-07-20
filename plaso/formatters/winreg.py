@@ -1,47 +1,42 @@
-# -*- coding: utf-8 -*-
 """Windows Registry custom event formatter helpers."""
 
 from plaso.formatters import interface
 from plaso.formatters import manager
 
 
-class WindowsRegistryValuesFormatterHelper(
-    interface.CustomEventFormatterHelper):
-  """Windows Registry values formatter helper."""
+class WindowsRegistryValuesFormatterHelper(interface.CustomEventFormatterHelper):
+    """Windows Registry values formatter helper."""
 
-  IDENTIFIER = 'windows_registry_values'
+    IDENTIFIER = "windows_registry_values"
 
-  def FormatEventValues(self, output_mediator, event_values):
-    """Formats event values using the helper.
+    def FormatEventValues(self, output_mediator, event_values):
+        """Formats event values using the helper.
 
-    Args:
-      output_mediator (OutputMediator): output mediator.
-      event_values (dict[str, object]): event values.
-    """
-    values = event_values.get('values', None)
-    if not values:
-      values_string = '(empty)'
+        Args:
+          output_mediator (OutputMediator): output mediator.
+          event_values (dict[str, object]): event values.
+        """
+        values = event_values.get("values")
+        if isinstance(values, str):
+            return
 
-    elif isinstance(values, list):
-      value_strings = []
-      for name, data_type, data in sorted(values):
-        if not name:
-          name = '(default)'
-        if not data:
-          data = '(empty)'
-        elif isinstance(data, bytes):
-          data = '({0:d} bytes)'.format(len(data))
+        if not values:
+            event_values["values"] = "(empty)"
+        else:
+            string_parts = []
+            for name, data_type, data in sorted(values):
+                if not name:
+                    name = "(default)"
+                if not data:
+                    data = "(empty)"
+                elif isinstance(data, bytes):
+                    data = f"({len(data):d} bytes)"
 
-        value_strings.append(
-            '{0:s}: [{1:s}] {2:s}'.format(name, data_type, data))
+                string_parts.append(f"{name:s}: [{data_type:s}] {data!s}")
 
-      values_string = ' '.join(value_strings)
-
-    else:
-      values_string = values
-
-    event_values['values'] = values_string
+            event_values["values"] = ", ".join(string_parts)
 
 
 manager.FormattersManager.RegisterEventFormatterHelper(
-    WindowsRegistryValuesFormatterHelper)
+    WindowsRegistryValuesFormatterHelper
+)

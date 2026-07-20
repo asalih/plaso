@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the OpenSearch Timesketch output module CLI arguments helper."""
 
-import argparse
 import os
 import sys
 import unittest
@@ -17,15 +15,16 @@ from tests.cli.helpers import test_lib
 
 
 class OpenSearchTimesketchOutputArgumentsHelperTest(
-    test_lib.OutputModuleArgumentsHelperTest):
-  """Tests the OpenSearch Timesketch output module CLI arguments helper."""
+    test_lib.OutputModuleArgumentsHelperTest
+):
+    """Tests the OpenSearch Timesketch output module CLI arguments helper."""
 
-  # pylint: disable=no-member,protected-access
+    # pylint: disable=no-member,protected-access
 
-  _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
+    _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
 
-  if _PYTHON3_13_OR_LATER:
-    _EXPECTED_OUTPUT = """\
+    if _PYTHON3_13_OR_LATER:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--index_name NAME] [--flush_interval INTERVAL]
                      [--opensearch-server HOSTNAME] [--opensearch-port PORT]
                      [--opensearch-user USERNAME]
@@ -37,7 +36,7 @@ usage: cli_helper.py [--index_name NAME] [--flush_interval INTERVAL]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --ca_certificates_file_path, --ca-certificates-file-path PATH
                         Path to a file containing a list of root certificates
                         to trust.
@@ -65,10 +64,10 @@ Test argument parser.
   --timeline_identifier, --timeline-identifier IDENTIFIER
                         The identifier of the timeline in Timesketch.
   --use_ssl, --use-ssl  Enforces use of SSL/TLS.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  else:
-    _EXPECTED_OUTPUT = """\
+    else:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--index_name NAME] [--flush_interval INTERVAL]
                      [--opensearch-server HOSTNAME] [--opensearch-port PORT]
                      [--opensearch-user USERNAME]
@@ -80,7 +79,7 @@ usage: cli_helper.py [--index_name NAME] [--flush_interval INTERVAL]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --ca_certificates_file_path PATH, --ca-certificates-file-path PATH
                         Path to a file containing a list of root certificates
                         to trust.
@@ -108,39 +107,40 @@ Test argument parser.
   --timeline_identifier IDENTIFIER, --timeline-identifier IDENTIFIER
                         The identifier of the timeline in Timesketch.
   --use_ssl, --use-ssl  Enforces use of SSL/TLS.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  def testAddArguments(self):
-    """Tests the AddArguments function."""
-    argument_parser = argparse.ArgumentParser(
-        prog='cli_helper.py',
-        description='Test argument parser.', add_help=False,
-        formatter_class=cli_test_lib.SortedArgumentsHelpFormatter)
+    def testAddArguments(self):
+        """Tests the AddArguments function."""
+        argument_parser = self._GetTestArgumentParser("cli_helper.py")
 
-    opensearch_ts_output.OpenSearchTimesketchOutputArgumentsHelper.AddArguments(
-        argument_parser)
+        opensearch_ts_output.OpenSearchTimesketchOutputArgumentsHelper.AddArguments(
+            argument_parser
+        )
 
-    output = self._RunArgparseFormatHelp(argument_parser)
-    self.assertEqual(output, self._EXPECTED_OUTPUT)
+        output = self._RunArgparseFormatHelp(argument_parser)
+        self.assertEqual(output, self._EXPECTED_OUTPUT)
 
-  def testParseOptions(self):
-    """Tests the ParseOptions function."""
-    options = cli_test_lib.TestOptions()
+    def testParseOptions(self):
+        """Tests the ParseOptions function."""
+        options = cli_test_lib.TestOptions()
 
-    output_module = opensearch_ts.OpenSearchTimesketchOutputModule()
+        output_module = opensearch_ts.OpenSearchTimesketchOutputModule()
 
-    # The mappings file is /etc/timesketch/plaso.mappings by default which
-    # does not exist on the CI test environment.
-    with self.assertRaises(errors.BadConfigObject):
-      arguments_helper = (
-          opensearch_ts_output.OpenSearchTimesketchOutputArgumentsHelper)
-      arguments_helper.ParseOptions(options, None)
+        # The mappings file is /etc/timesketch/plaso.mappings by default which
+        # does not exist on the CI test environment.
+        with self.assertRaises(errors.BadConfigObject):
+            arguments_helper = (
+                opensearch_ts_output.OpenSearchTimesketchOutputArgumentsHelper
+            )
+            arguments_helper.ParseOptions(options, None)
 
-    options.opensearch_mappings = os.path.join(
-        shared_test_lib.DATA_PATH, 'opensearch.mappings')
-    opensearch_ts_output.OpenSearchTimesketchOutputArgumentsHelper.ParseOptions(
-        options, output_module)
+        options.opensearch_mappings = os.path.join(
+            shared_test_lib.DATA_PATH, "opensearch.mappings"
+        )
+        opensearch_ts_output.OpenSearchTimesketchOutputArgumentsHelper.ParseOptions(
+            options, output_module
+        )
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

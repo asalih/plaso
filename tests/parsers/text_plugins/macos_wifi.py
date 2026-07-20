@@ -1,99 +1,155 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the MacOS Wi-Fi log (wifi.log) files text parser plugin."""
 
 import unittest
 
+from dfvfs.helpers import fake_file_system_builder
+
+from plaso.parsers import text_parser
 from plaso.parsers.text_plugins import macos_wifi
 
 from tests.parsers.text_plugins import test_lib
 
 
 class MacOSWiFiLogTextPluginTest(test_lib.TextPluginTestCase):
-  """Tests for the MacOS MacOS Wi-Fi log (wifi.log) files text parser plugin."""
+    """Tests for the MacOS MacOS Wi-Fi log (wifi.log) files text parser plugin."""
 
-  def testProcess(self):
-    """Tests the Process function."""
-    plugin = macos_wifi.MacOSWiFiLogTextPlugin()
-    storage_writer = self._ParseTextFileWithPlugin(['wifi.log'], plugin)
+    def testCheckRequiredFormat(self):
+        """Tests for the CheckRequiredFormat function."""
+        plugin = macos_wifi.MacOSWiFiLogTextPlugin()
 
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 10)
+        file_system_builder = fake_file_system_builder.FakeFileSystemBuilder()
+        file_system_builder.AddFile(
+            "/file.txt",
+            (
+                b"Thu Nov 14 20:14:37.123 ***Starting Up***\n"
+                b"Thu Nov 14 20:36:37.222 <airportd[88]> airportdProcessDLILEvent: "
+                b"en0 attached (up)\n"
+            ),
+        )
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
+        file_entry = file_system_builder.file_system.GetFileEntryByPath("/file.txt")
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
+        parser_mediator = self._CreateParserMediator(None, file_entry=file_entry)
 
-    expected_event_values = {
-        'action': 'Interface en0 turn up.',
-        'added_time': '0000-11-14T20:36:37.222+00:00',
-        'agent': 'airportd[88]',
-        'data_type': 'macos:wifi_log:entry',
-        'function': 'airportdProcessDLILEvent',
-        'text': 'en0 attached (up)'}
+        file_object = file_entry.GetFileObject()
+        text_reader = text_parser.EncodedTextReader(file_object)
+        text_reader.ReadLines()
 
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 1)
-    self.CheckEventData(event_data, expected_event_values)
+        self.assertTrue(plugin.CheckRequiredFormat(parser_mediator, text_reader))
 
-    # Check year change.
-    expected_event_values = {
-        'action': 'Wi-Fi connected to SSID: AndroidAP',
-        'added_time': '0001-01-01T01:12:17.311+00:00',
-        'agent': 'airportd[88]',
-        'data_type': 'macos:wifi_log:entry',
-        'function': '_doAutoJoin',
-        'text': 'Already associated to “AndroidAP”. Bailing on auto-join.'}
+        # Check non-matching format.
+        file_system_builder = fake_file_system_builder.FakeFileSystemBuilder()
+        file_system_builder.AddFile(
+            "/file.txt",
+            (
+                b"Jan 22 07:52:33 myhostname.myhost.com client[30840]: INFO No new "
+                b"content in image.dd.\n"
+            ),
+        )
 
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 9)
-    self.CheckEventData(event_data, expected_event_values)
+        file_entry = file_system_builder.file_system.GetFileEntryByPath("/file.txt")
 
-  def testProcessWithTurnedOverLog(self):
-    """Tests the Process function with a turned over log file."""
-    plugin = macos_wifi.MacOSWiFiLogTextPlugin()
-    storage_writer = self._ParseTextFileWithPlugin(
-        ['wifi_turned_over.log'], plugin)
+        parser_mediator = self._CreateParserMediator(None, file_entry=file_entry)
 
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 6)
+        file_object = file_entry.GetFileObject()
+        text_reader = text_parser.EncodedTextReader(file_object)
+        text_reader.ReadLines()
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
+        self.assertFalse(plugin.CheckRequiredFormat(parser_mediator, text_reader))
 
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
+    def testProcess(self):
+        """Tests the Process function."""
+        plugin = macos_wifi.MacOSWiFiLogTextPlugin()
+        storage_writer = self._ParseTextFileWithPlugin(["wifi.log"], plugin)
 
-    expected_event_values = {
-        'action': None,
-        'added_time': '0000-01-02T00:10:15+00:00',
-        'agent': None,
-        'data_type': 'macos:wifi_log:entry',
-        'function': None,
-        'text': 'test-macbookpro newsyslog[50498]: logfile turned over'}
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 10)
 
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-    expected_event_values = {
-        'action': None,
-        'added_time': '0000-01-02T00:11:02.378+00:00',
-        'agent': None,
-        'data_type': 'macos:wifi_log:entry',
-        'function': None,
-        'text': (
-            '<kernel> wl0: powerChange: *** '
-            'BONJOUR/MDNS OFFLOADS ARE NOT RUNNING.')}
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 1)
-    self.CheckEventData(event_data, expected_event_values)
+        expected_event_values = {
+            "action": "Interface en0 turn up.",
+            "added_time": "0000-11-14T20:36:37.222+00:00",
+            "agent": "airportd[88]",
+            "data_type": "macos:wifi_log:entry",
+            "function": "airportdProcessDLILEvent",
+            "text": "en0 attached (up)",
+        }
+
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 1)
+        self.CheckEventData(event_data, expected_event_values)
+
+        # Check year change.
+        expected_event_values = {
+            "action": "Wi-Fi connected to SSID: AndroidAP",
+            "added_time": "0001-01-01T01:12:17.311+00:00",
+            "agent": "airportd[88]",
+            "data_type": "macos:wifi_log:entry",
+            "function": "_doAutoJoin",
+            "text": "Already associated to “AndroidAP”. Bailing on auto-join.",
+        }
+
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 9)
+        self.CheckEventData(event_data, expected_event_values)
+
+    def testProcessWithTurnedOverLog(self):
+        """Tests the Process function with a turned over log file."""
+        plugin = macos_wifi.MacOSWiFiLogTextPlugin()
+        storage_writer = self._ParseTextFileWithPlugin(["wifi_turned_over.log"], plugin)
+
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 6)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        expected_event_values = {
+            "action": None,
+            "added_time": "0000-01-02T00:10:15+00:00",
+            "agent": None,
+            "data_type": "macos:wifi_log:entry",
+            "function": None,
+            "text": "test-macbookpro newsyslog[50498]: logfile turned over",
+        }
+
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
+
+        expected_event_values = {
+            "action": None,
+            "added_time": "0000-01-02T00:11:02.378+00:00",
+            "agent": None,
+            "data_type": "macos:wifi_log:entry",
+            "function": None,
+            "text": (
+                "<kernel> wl0: powerChange: *** "
+                "BONJOUR/MDNS OFFLOADS ARE NOT RUNNING."
+            ),
+        }
+
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 1)
+        self.CheckEventData(event_data, expected_event_values)
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

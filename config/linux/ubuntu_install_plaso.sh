@@ -54,7 +54,6 @@ PYTHON_DEPENDENCIES="libbde-python3
                      python3-artifacts
                      python3-bencode
                      python3-certifi
-                     python3-cffi-backend
                      python3-chardet
                      python3-dateutil
                      python3-defusedxml
@@ -63,7 +62,6 @@ PYTHON_DEPENDENCIES="libbde-python3
                      python3-dfwinreg
                      python3-dtfabric
                      python3-flor
-                     python3-idna
                      python3-lz4
                      python3-opensearch
                      python3-pefile
@@ -72,7 +70,6 @@ PYTHON_DEPENDENCIES="libbde-python3
                      python3-pytsk3
                      python3-redis
                      python3-requests
-                     python3-six
                      python3-tz
                      python3-urllib3
                      python3-xattr
@@ -83,10 +80,7 @@ PYTHON_DEPENDENCIES="libbde-python3
                      python3-zstd";
 
 # Additional dependencies for running tests, alphabetized, one per line.
-TEST_DEPENDENCIES="python3-distutils
-                   python3-fakeredis
-                   python3-lib2to3
-                   python3-mock
+TEST_DEPENDENCIES="python3-fakeredis
                    python3-setuptools";
 
 # Additional dependencies for development, alphabetized, one per line.
@@ -166,20 +160,20 @@ DEBUG_DEPENDENCIES="libbde-dbg
                     libvslvm-python3-dbg";
 
 sudo add-apt-repository ppa:gift/${GIFT_PPA_TRACK} -y
-sudo apt-get update -q
-sudo apt-get install -q -y ${PYTHON_DEPENDENCIES}
+sudo apt update -q
+sudo apt install -q -y ${PYTHON_DEPENDENCIES}
 
 if [[ "$*" =~ "include-debug" ]];
 then
-	sudo apt-get install -q -y ${DEBUG_DEPENDENCIES}
+	sudo apt install -q -y ${DEBUG_DEPENDENCIES}
 fi
 
 if [[ "$*" =~ "include-development" ]];
 then
-	sudo apt-get install -q -y ${DEVELOPMENT_DEPENDENCIES}
+	sudo apt install -q -y ${DEVELOPMENT_DEPENDENCIES}
 fi
 
 if [[ "$*" =~ "include-test" ]];
 then
-	sudo apt-get install -q -y ${TEST_DEPENDENCIES}
+	sudo apt install -q -y ${TEST_DEPENDENCIES}
 fi

@@ -1,9 +1,12 @@
-# -*- coding: utf-8 -*-
 """Interface for SQLite database file parser plugins."""
 
 import sqlite3
 
+from dfdatetime import cocoa_time as dfdatetime_cocoa_time
 from dfdatetime import filetime as dfdatetime_filetime
+from dfdatetime import java_time as dfdatetime_java_time
+from dfdatetime import posix_time as dfdatetime_posix_time
+from dfdatetime import semantic_time as dfdatetime_semantic_time
 from dfdatetime import time_elements as dfdatetime_time_elements
 
 from plaso.parsers import logger
@@ -11,247 +14,343 @@ from plaso.parsers import plugins
 
 
 class SQLitePlugin(plugins.BasePlugin):
-  """SQLite parser plugin."""
+    """SQLite parser plugin."""
 
-  NAME = 'sqlite_plugin'
-  DATA_FORMAT = 'SQLite database file'
+    NAME = "sqlite_plugin"
+    DATA_FORMAT = "SQLite database file"
 
-  # Dictionary of frozensets containing the columns in tables that must be
-  # present in the database for the plugin to run.
-  # This generally should only include tables/columns that are used in SQL
-  # queries by the plugin and not include extraneous tables/columns to better
-  # accommodate future application database versions. The exception to this is
-  # when extra tables/columns are needed to identify the target database from
-  # others with a similar structure.
-  REQUIRED_STRUCTURE = {}
+    # Dictionary of frozensets containing the columns in tables that must be
+    # present in the database for the plugin to run.
+    # This generally should only include tables/columns that are used in SQL
+    # queries by the plugin and not include extraneous tables/columns to better
+    # accommodate future application database versions. The exception to this is
+    # when extra tables/columns are needed to identify the target database from
+    # others with a similar structure.
+    REQUIRED_STRUCTURE = {}
 
-  # Queries to be executed.
-  # Should be a list of tuples with two entries, SQLCommand and callback
-  # function name.
-  QUERIES = []
+    # Queries to be executed.
+    # Should be a list of tuples with two entries, SQLCommand and callback
+    # function name.
+    QUERIES = []
 
-  # Database schemas this plugin was originally designed for.
-  # Should be a list of dictionaries with {table_name: SQLCommand} format.
-  SCHEMAS = []
+    # Database schemas this plugin was originally designed for.
+    # Should be a list of dictionaries with {table_name: SQLCommand} format.
+    SCHEMAS = []
 
-  # Value to indicate the schema of the database must match one of the schemas
-  # defined by the plugin.
-  REQUIRES_SCHEMA_MATCH = False
+    # Value to indicate the schema of the database must match one of the schemas
+    # defined by the plugin.
+    REQUIRES_SCHEMA_MATCH = False
 
-  def __init__(self):
-    """Initializes a SQLite parser plugin."""
-    super(SQLitePlugin, self).__init__()
-    self._keys_per_query = {}
+    def __init__(self):
+        """Initializes a SQLite parser plugin."""
+        super().__init__()
+        self._keys_per_query = {}
 
-  def _GetDateTimeStringRowValue(self, query_hash, row, value_name):
-    """Retrieves a date and time string value from the row.
+    def _GetDateTimeStringRowValue(self, query_hash, row, value_name):
+        """Retrieves a date and time string value from the row.
 
-    Args:
-      query_hash (int): hash of the query, that uniquely identifies the query
-          that produced the row.
-      row (sqlite3.Row): row.
-      value_name (str): name of the value.
+        Args:
+          query_hash (int): hash of the query, that uniquely identifies the query
+              that produced the row.
+          row (sqlite3.Row): row.
+          value_name (str): name of the value.
 
-    Returns:
-      dfdatetime.TimeElements: date and time value or None if not available.
-    """
-    date_time_string = self._GetRowValue(query_hash, row, value_name)
-    if date_time_string is None:
-      return None
+        Returns:
+          dfdatetime.TimeElements: date and time value or None if not available.
+        """
+        date_time_string = self._GetRowValue(query_hash, row, value_name)
+        if date_time_string in (None, ""):
+            return None
 
-    date_time = dfdatetime_time_elements.TimeElements()
-    date_time.CopyFromDateTimeString(date_time_string)
-    return date_time
+        date_time = dfdatetime_time_elements.TimeElements()
+        date_time.CopyFromDateTimeString(date_time_string)
+        return date_time
 
-  def _GeFiletimeRowValue(self, query_hash, row, value_name):
-    """Retrieves a FILETIME date and time value from the row.
+    def _GetCocoaTimeRowValue(self, query_hash, row, value_name):
+        """Retrieves a Cocoa date and time value from the row.
 
-    Args:
-      query_hash (int): hash of the query, that uniquely identifies the query
-          that produced the row.
-      row (sqlite3.Row): row.
-      value_name (str): name of the value.
+        Args:
+          query_hash (int): hash of the query, that uniquely
+              identifies the query that produced the row.
+          row (sqlite3.Row): row.
+          value_name (str): name of the value.
 
-    Returns:
-      dfdatetime.Filetime: date and time value or None if not available.
-    """
-    timestamp = self._GetRowValue(query_hash, row, value_name)
-    if timestamp is None:
-      return None
+        Returns:
+          dfdatetime.CocoaTime: date and time value or None if not available.
+        """
+        timestamp = self._GetRowValue(query_hash, row, value_name)
+        # Note that pysqlite3 can return an empty string for a NULL value.
+        # Also see: https://github.com/log2timeline/plaso/issues/4961
+        if timestamp in (None, ""):
+            return None
 
-    return dfdatetime_filetime.Filetime(timestamp=timestamp)
+        return dfdatetime_cocoa_time.CocoaTime(timestamp=timestamp)
 
-  def _GetRowValue(self, query_hash, row, value_name):
-    """Retrieves a value from the row.
+    def _GeFiletimeRowValue(self, query_hash, row, value_name):
+        """Retrieves a FILETIME date and time value from the row.
 
-    Args:
-      query_hash (int): hash of the query, that uniquely identifies the query
-          that produced the row.
-      row (sqlite3.Row): row.
-      value_name (str): name of the value.
+        Args:
+          query_hash (int): hash of the query, that uniquely identifies the query
+              that produced the row.
+          row (sqlite3.Row): row.
+          value_name (str): name of the value.
 
-    Returns:
-      object: value or None if not available.
-    """
-    keys_name_to_index_map = self._keys_per_query.get(query_hash, None)
-    if not keys_name_to_index_map:
-      keys_name_to_index_map = {
-          name: index for index, name in enumerate(row.keys())}
-      self._keys_per_query[query_hash] = keys_name_to_index_map
+        Returns:
+          dfdatetime.DateTimeValues: date and time value or None if not available.
+        """
+        timestamp = self._GetRowValue(query_hash, row, value_name)
+        # Note that pysqlite3 can return an empty string for a NULL value.
+        # Also see: https://github.com/log2timeline/plaso/issues/4961
+        if timestamp in (None, ""):
+            return None
 
-    value_index = keys_name_to_index_map.get(value_name)
+        if timestamp == 0:
+            return dfdatetime_semantic_time.NotSet()
 
-    # Note that pysqlite does not accept a Unicode string in row['string'] and
-    # will raise "IndexError: Index must be int or string".
-    return row[value_index]
+        return dfdatetime_filetime.Filetime(timestamp=timestamp)
 
-  @classmethod
-  def _HashRow(cls, row):
-    """Hashes the given row.
+    def _GetJavaTimeRowValue(self, query_hash, row, value_name):
+        """Retrieves a Java date and time value from the row.
 
-    Args:
-      row (sqlite3.Row): row.
+        Args:
+          query_hash (int): hash of the query, that uniquely identifies the query
+              that produced the row.
+          row (sqlite3.Row): row.
+          value_name (str): name of the value.
 
-    Returns:
-      int: hash value of the given row.
-    """
-    values = []
-    for value in row:
-      try:
-        value = '{0!s}'.format(value)
-      except UnicodeDecodeError:
-        # In Python 2, blobs are "read-write buffer" and will cause a
-        # UnicodeDecodeError exception if we try format it as a string.
-        # Since Python 3 does not support the buffer type we cannot check
-        # the type of value.
-        value = repr(value)
+        Returns:
+          dfdatetime.DateTimeValues: date and time value or None if not available.
+        """
+        timestamp = self._GetRowValue(query_hash, row, value_name)
+        # Note that pysqlite3 can return an empty string for a NULL value.
+        # Also see: https://github.com/log2timeline/plaso/issues/4961
+        if timestamp in (None, ""):
+            return None
 
-      values.append(value)
+        if timestamp == 0:
+            return dfdatetime_semantic_time.NotSet()
 
-    return hash(' '.join(values))
+        return dfdatetime_java_time.JavaTime(timestamp=timestamp)
 
-  def _ParseSQLiteDatabase(
-      self, parser_mediator, database, query, callback, cache):
-    """Extracts events from a SQLite database.
+    def _GetPosixTimeInMicrosecondsRowValue(self, query_hash, row, value_name):
+        """Retrieves a POSIX time in microseconds date and time value from the row.
 
-    Args:
-      parser_mediator (ParserMediator): parser mediator.
-      database (SQLiteDatabase): database.
-      query (str): query.
-      callback (function): function to invoke to parse an individual row.
-      cache (SQLiteCache): cache.
-    """
-    row_cache = cache.GetRowCache(query)
+        Args:
+          query_hash (int): hash of the query, that uniquely identifies the query
+              that produced the row.
+          row (sqlite3.Row): row.
+          value_name (str): name of the value.
 
-    try:
-      rows = database.Query(query)
+        Returns:
+          dfdatetime.DateTimeValues: date and time value or None if not available.
+        """
+        timestamp = self._GetRowValue(query_hash, row, value_name)
+        # Note that pysqlite3 can return an empty string for a NULL value.
+        # Also see: https://github.com/log2timeline/plaso/issues/4961
+        if timestamp in (None, ""):
+            return None
 
-    except sqlite3.DatabaseError as exception:
-      parser_mediator.ProduceExtractionWarning(
-          'unable to run query: {0:s} on database with error: {1!s}'.format(
-              query, exception))
-      return
+        if timestamp == 0:
+            return dfdatetime_semantic_time.NotSet()
 
-    for index, row in enumerate(rows):
-      if parser_mediator.abort:
-        break
+        return dfdatetime_posix_time.PosixTimeInMicroseconds(timestamp=timestamp)
 
-      row_hash = self._HashRow(row)
-      if row_hash in row_cache:
-        continue
+    def _GetPosixTimeInMillisecondsRowValue(self, query_hash, row, value_name):
+        """Retrieves a POSIX time in milliseconds date and time value from the row.
 
-      try:
-        callback(parser_mediator, query, row, cache=cache, database=database)
+        Args:
+          query_hash (int): hash of the query, that uniquely identifies the query
+              that produced the row.
+          row (sqlite3.Row): row.
 
-      except Exception as exception:  # pylint: disable=broad-except
-        parser_mediator.ProduceExtractionWarning((
-            'unable to parse row: {0:d} with callback: {1:s} on database '
-            'with error: {2!s}').format(
-                index, callback.__name__, exception))
-        # TODO: consider removing return.
-        return
+        Returns:
+          dfdatetime.DateTimeValues: date and time value or None if not available.
+        """
+        timestamp = self._GetRowValue(query_hash, row, value_name)
+        # Note that pysqlite3 can return an empty string for a NULL value.
+        # Also see: https://github.com/log2timeline/plaso/issues/4961
+        if timestamp in (None, ""):
+            return None
 
-      row_cache.add(row_hash)
+        if timestamp == 0:
+            return dfdatetime_semantic_time.NotSet()
 
-  def CheckRequiredTablesAndColumns(self, database):
-    """Check if the database has the minimal structure required by the plugin.
+        return dfdatetime_posix_time.PosixTimeInMilliseconds(timestamp=timestamp)
 
-    Args:
-      database (SQLiteDatabase): the database who's structure is being checked.
+    def _GetRowValue(self, query_hash, row, value_name):
+        """Retrieves a value from the row.
 
-    Returns:
-      bool: True if the database has the required tables and columns defined by
-          the plugin, or False if it does not or if the plugin does not define
-          required tables and columns. The database can have more tables and/or
-          columns than specified by the plugin and still return True.
-    """
-    if not self.REQUIRED_STRUCTURE:
-      return False
+        Args:
+          query_hash (int): hash of the query, that uniquely identifies the query
+              that produced the row.
+          row (sqlite3.Row): row.
+          value_name (str): name of the value.
 
-    has_required_structure = True
-    for required_table, required_columns in self.REQUIRED_STRUCTURE.items():
-      if required_table not in database.tables:
-        has_required_structure = False
-        break
+        Returns:
+          object: value or None if not available.
+        """
+        keys_name_to_index_map = self._keys_per_query.get(query_hash)
+        if not keys_name_to_index_map:
+            keys_name_to_index_map = {
+                name: index for index, name in enumerate(row.keys())
+            }
+            self._keys_per_query[query_hash] = keys_name_to_index_map
 
-      if not frozenset(required_columns).issubset(
-          database.columns_per_table.get(required_table)):
-        has_required_structure = False
-        break
+        value_index = keys_name_to_index_map.get(value_name)
 
-    return has_required_structure
+        # Note that pysqlite does not accept a Unicode string in row['string'] and
+        # will raise "IndexError: Index must be int or string".
+        return row[value_index]
 
-  def CheckSchema(self, database):
-    """Checks the schema of a database with that defined in the plugin.
+    @classmethod
+    def _HashRow(cls, row):
+        """Hashes the given row.
 
-    Args:
-      database (SQLiteDatabase): SQLite database to check.
+        Args:
+          row (sqlite3.Row): row.
 
-    Returns:
-      bool: True if the schema of the database matches that defined by
-          the plugin, or False if the schemas do not match or no schema
-          is defined by the plugin.
-    """
-    schema_match = False
-    if self.SCHEMAS:
-      for schema in self.SCHEMAS:
-        if database and database.schema == schema:
-          schema_match = True
+        Returns:
+          int: hash value of the given row.
+        """
+        values = []
+        for value in row:
+            try:
+                value = f"{value!s}"
+            except UnicodeDecodeError:
+                # In Python 2, blobs are "read-write buffer" and will cause a
+                # UnicodeDecodeError exception if we try format it as a string.
+                # Since Python 3 does not support the buffer type we cannot check
+                # the type of value.
+                value = repr(value)
 
-    return schema_match
+            values.append(value)
 
-  # pylint: disable=arguments-differ
-  def Process(
-      self, parser_mediator, cache=None, database=None, **unused_kwargs):
-    """Extracts events from a SQLite database.
+        return hash(" ".join(values))
 
-    Args:
-      parser_mediator (ParserMediator): parser mediator.
-      cache (Optional[SQLiteCache]): cache.
-      database (Optional[SQLiteDatabase]): database.
+    def _ParseSQLiteDatabase(self, parser_mediator, database, query, callback, cache):
+        """Extracts events from a SQLite database.
 
-    Raises:
-      ValueError: If the database or cache value are missing.
-    """
-    if cache is None:
-      raise ValueError('Missing cache value.')
+        Args:
+          parser_mediator (ParserMediator): mediates interactions between parsers and
+              other components, such as storage and dfVFS.
+          database (SQLiteDatabase): database.
+          query (str): query.
+          callback (function): function to invoke to parse an individual row.
+          cache (SQLiteCache): cache.
+        """
+        row_cache = cache.GetRowCache(query)
 
-    if database is None:
-      raise ValueError('Missing database value.')
+        try:
+            rows = database.Query(query)
 
-    # This will raise if unhandled keyword arguments are passed.
-    super(SQLitePlugin, self).Process(parser_mediator)
+        except sqlite3.DatabaseError as exception:
+            parser_mediator.ProduceWarning(
+                f"unable to run query: {query:s} on database with error: "
+                f"{exception!s}"
+            )
+            return
 
-    for query, callback_method in self.QUERIES:
-      if parser_mediator.abort:
-        break
+        for index, row in enumerate(rows):
+            if parser_mediator.abort:
+                break
 
-      callback = getattr(self, callback_method, None)
-      if callback is None:
-        logger.warning(
-            '[{0:s}] missing callback method: {1:s} for query: {2:s}'.format(
-                self.NAME, callback_method, query))
-        continue
+            row_hash = self._HashRow(row)
+            if row_hash in row_cache:
+                continue
 
-      self._ParseSQLiteDatabase(
-          parser_mediator, database, query, callback, cache)
+            try:
+                callback(parser_mediator, query, row, cache=cache, database=database)
+
+            except Exception as exception:  # pylint: disable=broad-except
+                parser_mediator.ProduceWarning(
+                    f"unable to parse row: {index:d} with callback: "
+                    f"{callback.__name__:s} on database with error: {exception!s}"
+                )
+                # TODO: consider removing return.
+                return
+
+            row_cache.add(row_hash)
+
+    def CheckRequiredTablesAndColumns(self, database):
+        """Check if the database has the minimal structure required by the plugin.
+
+        Args:
+          database (SQLiteDatabase): the database who's structure is being checked.
+
+        Returns:
+          bool: True if the database has the required tables and columns defined by
+              the plugin, or False if it does not or if the plugin does not define
+              required tables and columns. The database can have more tables and/or
+              columns than specified by the plugin and still return True.
+        """
+        if not self.REQUIRED_STRUCTURE:
+            return False
+
+        has_required_structure = True
+        for required_table, required_columns in self.REQUIRED_STRUCTURE.items():
+            if required_table not in database.tables:
+                has_required_structure = False
+                break
+
+            if not frozenset(required_columns).issubset(
+                database.columns_per_table.get(required_table)
+            ):
+                has_required_structure = False
+                break
+
+        return has_required_structure
+
+    def CheckSchema(self, database):
+        """Checks the schema of a database with that defined in the plugin.
+
+        Args:
+          database (SQLiteDatabase): SQLite database to check.
+
+        Returns:
+          bool: True if the schema of the database matches that defined by
+              the plugin, or False if the schemas do not match or no schema
+              is defined by the plugin.
+        """
+        schema_match = False
+        if self.SCHEMAS:
+            for schema in self.SCHEMAS:
+                if database and database.schema == schema:
+                    schema_match = True
+
+        return schema_match
+
+    # pylint: disable=arguments-differ
+    def Process(self, parser_mediator, cache=None, database=None, **unused_kwargs):
+        """Extracts events from a SQLite database.
+
+        Args:
+          parser_mediator (ParserMediator): mediates interactions between parsers and
+              other components, such as storage and dfVFS.
+          cache (Optional[SQLiteCache]): cache.
+          database (Optional[SQLiteDatabase]): database.
+
+        Raises:
+          ValueError: If the database or cache value are missing.
+        """
+        if cache is None:
+            raise ValueError("Missing cache value.")
+
+        if database is None:
+            raise ValueError("Missing database value.")
+
+        # This will raise if unhandled keyword arguments are passed.
+        super().Process(parser_mediator)
+
+        for query, callback_method in self.QUERIES:
+            if parser_mediator.abort:
+                break
+
+            callback = getattr(self, callback_method, None)
+            if callback is None:
+                logger.warning(
+                    f"[{self.NAME:s}] missing callback method: {callback_method:s} for "
+                    f"query: {query:s}"
+                )
+                continue
+
+            self._ParseSQLiteDatabase(parser_mediator, database, query, callback, cache)

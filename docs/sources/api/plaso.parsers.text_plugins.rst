@@ -28,6 +28,30 @@ plaso.parsers.text\_plugins.apt\_history module
    :show-inheritance:
    :undoc-members:
 
+plaso.parsers.text\_plugins.atlassian\_bitbucket module
+-------------------------------------------------------
+
+.. automodule:: plaso.parsers.text_plugins.atlassian_bitbucket
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+plaso.parsers.text\_plugins.atlassian\_confluence module
+--------------------------------------------------------
+
+.. automodule:: plaso.parsers.text_plugins.atlassian_confluence
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+plaso.parsers.text\_plugins.atlassian\_jira module
+--------------------------------------------------
+
+.. automodule:: plaso.parsers.text_plugins.atlassian_jira
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 plaso.parsers.text\_plugins.aws\_elb\_access module
 ---------------------------------------------------
 
@@ -40,6 +64,22 @@ plaso.parsers.text\_plugins.bash\_history module
 ------------------------------------------------
 
 .. automodule:: plaso.parsers.text_plugins.bash_history
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+plaso.parsers.text\_plugins.bitbucket\_access module
+----------------------------------------------------
+
+.. automodule:: plaso.parsers.text_plugins.bitbucket_access
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+plaso.parsers.text\_plugins.bitbucket\_audit module
+---------------------------------------------------
+
+.. automodule:: plaso.parsers.text_plugins.bitbucket_audit
    :members:
    :show-inheritance:
    :undoc-members:
@@ -120,6 +160,14 @@ plaso.parsers.text\_plugins.ios\_sysdiag\_log module
 ----------------------------------------------------
 
 .. automodule:: plaso.parsers.text_plugins.ios_sysdiag_log
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+plaso.parsers.text\_plugins.jira\_access module
+-----------------------------------------------
+
+.. automodule:: plaso.parsers.text_plugins.jira_access
    :members:
    :show-inheritance:
    :undoc-members:

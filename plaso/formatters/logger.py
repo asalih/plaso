@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """The formatters sub module logger."""
 
 import logging
 
-
-_logger = logging.getLogger('formatters')
+_logger = logging.getLogger("formatters")
 
 # Mimic the logging module interface.
 critical = _logger.critical

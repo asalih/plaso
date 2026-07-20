@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the Application Compatibility Cache key Windows Registry plugin."""
 
 import unittest
@@ -14,544 +13,1536 @@ from tests.parsers.winreg_plugins import test_lib
 
 
 class AppCompatCacheWindowsRegistryPluginTest(test_lib.RegistryPluginTestCase):
-  """Tests for the AppCompatCache Windows Registry plugin."""
-
-  _TEST_DATA_XP = bytes(bytearray([
-      0xef, 0xbe, 0xad, 0xde, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-      0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x5c, 0x00, 0x3f, 0x00, 0x3f, 0x00, 0x5c, 0x00,
-      0x43, 0x00, 0x3a, 0x00, 0x5c, 0x00, 0x57, 0x00, 0x49, 0x00, 0x4e, 0x00,
-      0x44, 0x00, 0x4f, 0x00, 0x57, 0x00, 0x53, 0x00, 0x5c, 0x00, 0x73, 0x00,
-      0x79, 0x00, 0x73, 0x00, 0x74, 0x00, 0x65, 0x00, 0x6d, 0x00, 0x33, 0x00,
-      0x32, 0x00, 0x5c, 0x00, 0x68, 0x00, 0x74, 0x00, 0x69, 0x00, 0x63, 0x00,
-      0x6f, 0x00, 0x6e, 0x00, 0x73, 0x00, 0x2e, 0x00, 0x64, 0x00, 0x6c, 0x00,
-      0x6c, 0x00, 0x00, 0x00, 0x44, 0x00, 0x6f, 0x00, 0x77, 0x00, 0x6e, 0x00,
-      0x6c, 0x00, 0x6f, 0x00, 0x61, 0x00, 0x64, 0x00, 0x5c, 0x00, 0x62, 0x00,
-      0x37, 0x00, 0x66, 0x00, 0x30, 0x00, 0x62, 0x00, 0x32, 0x00, 0x38, 0x00,
-      0x39, 0x00, 0x32, 0x00, 0x62, 0x00, 0x32, 0x00, 0x31, 0x00, 0x32, 0x00,
-      0x31, 0x00, 0x31, 0x00, 0x61, 0x00, 0x35, 0x00, 0x36, 0x00, 0x33, 0x00,
-      0x30, 0x00, 0x35, 0x00, 0x31, 0x00, 0x38, 0x00, 0x64, 0x00, 0x30, 0x00,
-      0x35, 0x00, 0x38, 0x00, 0x66, 0x00, 0x34, 0x00, 0x38, 0x00, 0x64, 0x00,
-      0x39, 0x00, 0x5c, 0x00, 0x75, 0x00, 0x70, 0x00, 0x64, 0x00, 0x61, 0x00,
-      0x74, 0x00, 0x65, 0x00, 0x5c, 0x00, 0x75, 0x00, 0x70, 0x00, 0x64, 0x00,
-      0x61, 0x00, 0x74, 0x00, 0x65, 0x00, 0x2e, 0x00, 0x65, 0x00, 0x78, 0x00,
-      0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0xb0, 0xe9, 0x54, 0x2b, 0x7a, 0xc4, 0x01,
-      0x00, 0xae, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0xd3, 0x0e, 0xc7,
-      0xe9, 0x39, 0xca, 0x01]))
-
-  _TEST_DATA_2003 = bytes(bytearray([
-      0xfe, 0x0f, 0xdc, 0xba, 0x01, 0x00, 0x00, 0x00, 0x72, 0x00, 0x74, 0x00,
-      0x20, 0x00, 0x00, 0x00, 0x00, 0x35, 0x86, 0x76, 0x44, 0xf2, 0xc2, 0x01,
-      0x00, 0x20, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5c, 0x00, 0x3f, 0x00,
-      0x3f, 0x00, 0x5c, 0x00, 0x43, 0x00, 0x3a, 0x00, 0x5c, 0x00, 0x57, 0x00,
-      0x49, 0x00, 0x4e, 0x00, 0x44, 0x00, 0x4f, 0x00, 0x57, 0x00, 0x53, 0x00,
-      0x5c, 0x00, 0x4d, 0x00, 0x69, 0x00, 0x63, 0x00, 0x72, 0x00, 0x6f, 0x00,
-      0x73, 0x00, 0x6f, 0x00, 0x66, 0x00, 0x74, 0x00, 0x2e, 0x00, 0x4e, 0x00,
-      0x45, 0x00, 0x54, 0x00, 0x5c, 0x00, 0x46, 0x00, 0x72, 0x00, 0x61, 0x00,
-      0x6d, 0x00, 0x65, 0x00, 0x77, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x6b, 0x00,
-      0x5c, 0x00, 0x76, 0x00, 0x31, 0x00, 0x2e, 0x00, 0x31, 0x00, 0x2e, 0x00,
-      0x34, 0x00, 0x33, 0x00, 0x32, 0x00, 0x32, 0x00, 0x5c, 0x00, 0x6e, 0x00,
-      0x67, 0x00, 0x65, 0x00, 0x6e, 0x00, 0x2e, 0x00, 0x65, 0x00, 0x78, 0x00,
-      0x65, 0x00, 0x00, 0x00]))
-
-  _TEST_DATA_VISTA = bytes(bytearray([
-      0xfe, 0x0f, 0xdc, 0xba, 0x01, 0x00, 0x00, 0x00, 0x46, 0x00, 0x48, 0x00,
-      0x20, 0x00, 0x00, 0x00, 0xc2, 0xfe, 0x87, 0x5e, 0x7b, 0xfe, 0xc6, 0x01,
-      0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5c, 0x00, 0x3f, 0x00,
-      0x3f, 0x00, 0x5c, 0x00, 0x43, 0x00, 0x3a, 0x00, 0x5c, 0x00, 0x57, 0x00,
-      0x69, 0x00, 0x6e, 0x00, 0x64, 0x00, 0x6f, 0x00, 0x77, 0x00, 0x73, 0x00,
-      0x5c, 0x00, 0x53, 0x00, 0x59, 0x00, 0x53, 0x00, 0x54, 0x00, 0x45, 0x00,
-      0x4d, 0x00, 0x33, 0x00, 0x32, 0x00, 0x5c, 0x00, 0x57, 0x00, 0x49, 0x00,
-      0x53, 0x00, 0x50, 0x00, 0x54, 0x00, 0x49, 0x00, 0x53, 0x00, 0x2e, 0x00,
-      0x45, 0x00, 0x58, 0x00, 0x45, 0x00, 0x00, 0x00]))
-
-  _TEST_DATA_8_0 = bytes(bytearray([
-      0x80, 0x00, 0x00, 0x00, 0x2e, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x09, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x4a, 0x01, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00,
-      0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x08, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x30, 0x74, 0x73,
-      0x9e, 0x6b, 0x3c, 0x8a, 0x68, 0x00, 0x00, 0x00, 0x52, 0x00, 0x53, 0x00,
-      0x59, 0x00, 0x53, 0x00, 0x56, 0x00, 0x4f, 0x00, 0x4c, 0x00, 0x5c, 0x00,
-      0x57, 0x00, 0x69, 0x00, 0x6e, 0x00, 0x64, 0x00, 0x6f, 0x00, 0x77, 0x00,
-      0x73, 0x00, 0x5c, 0x00, 0x53, 0x00, 0x79, 0x00, 0x73, 0x00, 0x74, 0x00,
-      0x65, 0x00, 0x6d, 0x00, 0x33, 0x00, 0x32, 0x00, 0x5c, 0x00, 0x77, 0x00,
-      0x62, 0x00, 0x65, 0x00, 0x6d, 0x00, 0x5c, 0x00, 0x57, 0x00, 0x6d, 0x00,
-      0x69, 0x00, 0x50, 0x00, 0x72, 0x00, 0x76, 0x00, 0x53, 0x00, 0x45, 0x00,
-      0x2e, 0x00, 0x65, 0x00, 0x78, 0x00, 0x65, 0x00, 0x43, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x01, 0xf0, 0xa4, 0xa4, 0xbc, 0xfc, 0xed, 0xcc, 0x01,
-      0x00, 0x00, 0x00, 0x00]))
-
-  _TEST_DATA_8_1 = bytes(bytearray([
-      0x80, 0x00, 0x00, 0x00, 0x09, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x09, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x73, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x46, 0x15, 0x00, 0x00, 0x3a, 0x00, 0x00, 0x00,
-      0x47, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x38, 0x01, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x01, 0x00, 0x00, 0x00, 0x6c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x6c, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x38, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x31, 0x30, 0x74, 0x73,
-      0xbc, 0x4c, 0xa0, 0x05, 0x5e, 0x00, 0x00, 0x00, 0x46, 0x00, 0x53, 0x00,
-      0x59, 0x00, 0x53, 0x00, 0x56, 0x00, 0x4f, 0x00, 0x4c, 0x00, 0x5c, 0x00,
-      0x57, 0x00, 0x69, 0x00, 0x6e, 0x00, 0x64, 0x00, 0x6f, 0x00, 0x77, 0x00,
-      0x73, 0x00, 0x5c, 0x00, 0x53, 0x00, 0x79, 0x00, 0x73, 0x00, 0x74, 0x00,
-      0x65, 0x00, 0x6d, 0x00, 0x33, 0x00, 0x32, 0x00, 0x5c, 0x00, 0x64, 0x00,
-      0x6c, 0x00, 0x6c, 0x00, 0x68, 0x00, 0x6f, 0x00, 0x73, 0x00, 0x74, 0x00,
-      0x2e, 0x00, 0x65, 0x00, 0x78, 0x00, 0x65, 0x00, 0x00, 0x00, 0x7f, 0x00,
-      0x00, 0x00, 0x00, 0x11, 0x00, 0x01, 0xb5, 0x1f, 0x73, 0x13, 0x34, 0x9f,
-      0xce, 0x01, 0x00, 0x00, 0x00, 0x00]))
-
-  _TEST_DATA_10 = bytes(bytearray([
-      0x30, 0x00, 0x00, 0x00, 0x0a, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0xc9, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x31, 0x30, 0x74, 0x73, 0x64, 0x7e, 0xcd, 0xc9, 0xcc, 0x00, 0x00, 0x00,
-      0x42, 0x00, 0x43, 0x00, 0x3a, 0x00, 0x5c, 0x00, 0x57, 0x00, 0x69, 0x00,
-      0x6e, 0x00, 0x64, 0x00, 0x6f, 0x00, 0x77, 0x00, 0x73, 0x00, 0x5c, 0x00,
-      0x73, 0x00, 0x79, 0x00, 0x73, 0x00, 0x74, 0x00, 0x65, 0x00, 0x6d, 0x00,
-      0x33, 0x00, 0x32, 0x00, 0x5c, 0x00, 0x4d, 0x00, 0x70, 0x00, 0x53, 0x00,
-      0x69, 0x00, 0x67, 0x00, 0x53, 0x00, 0x74, 0x00, 0x75, 0x00, 0x62, 0x00,
-      0x2e, 0x00, 0x65, 0x00, 0x78, 0x00, 0x65, 0x00, 0x80, 0x99, 0xe3, 0x66,
-      0x30, 0xd6, 0xcf, 0x01, 0x7c, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00,
-      0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
-      0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x40, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-      0x00, 0x04, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
-      0x20, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x01, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00]))
-
-  _TEST_DATA_10_CREATOR = bytes(bytearray([
-      0x34, 0x00, 0x00, 0x00, 0x1a, 0x4e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x53, 0x07, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x7a, 0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0xfa, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x31, 0x30, 0x74, 0x73, 0xd5, 0xf1, 0x23, 0x93,
-      0xd4, 0x00, 0x00, 0x00, 0x7e, 0x00, 0x43, 0x00, 0x3a, 0x00, 0x5c, 0x00,
-      0x50, 0x00, 0x72, 0x00, 0x6f, 0x00, 0x67, 0x00, 0x72, 0x00, 0x61, 0x00,
-      0x6d, 0x00, 0x20, 0x00, 0x46, 0x00, 0x69, 0x00, 0x6c, 0x00, 0x65, 0x00,
-      0x73, 0x00, 0x20, 0x00, 0x28, 0x00, 0x78, 0x00, 0x38, 0x00, 0x36, 0x00,
-      0x29, 0x00, 0x5c, 0x00, 0x4e, 0x00, 0x56, 0x00, 0x49, 0x00, 0x44, 0x00,
-      0x49, 0x00, 0x41, 0x00, 0x20, 0x00, 0x43, 0x00, 0x6f, 0x00, 0x72, 0x00,
-      0x70, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x61, 0x00, 0x74, 0x00, 0x69, 0x00,
-      0x6f, 0x00, 0x6e, 0x00, 0x5c, 0x00, 0x33, 0x00, 0x44, 0x00, 0x20, 0x00,
-      0x56, 0x00, 0x69, 0x00, 0x73, 0x00, 0x69, 0x00, 0x6f, 0x00, 0x6e, 0x00,
-      0x5c, 0x00, 0x6e, 0x00, 0x76, 0x00, 0x73, 0x00, 0x74, 0x00, 0x72, 0x00,
-      0x65, 0x00, 0x67, 0x00, 0x2e, 0x00, 0x65, 0x00, 0x78, 0x00, 0x65, 0x00,
-      0xe9, 0x09, 0x99, 0x7b, 0xa8, 0x9e, 0xd2, 0x01, 0x48, 0x00, 0x00, 0x00,
-      0x00, 0x02, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x08, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x4c, 0x01, 0x00, 0x00,
-      0x00, 0x04, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
-      0x40, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-      0x20, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x01, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00]))
-
-  def _CreateTestKey(self, time_string, binary_data):
-    """Creates Registry keys and values for testing.
-
-    Args:
-      time_string (str): key last written date and time.
-      binary_data (bytes): AppCompatCache Registry value data.
-
-    Returns:
-      dfwinreg.WinRegistryKey: a Windows Registry key.
-    """
-    filetime = dfdatetime_filetime.Filetime()
-    filetime.CopyFromDateTimeString(time_string)
-    registry_key = dfwinreg_fake.FakeWinRegistryKey(
-        'AppCompatCache', key_path_prefix='HKEY_LOCAL_MACHINE\\System',
-        last_written_time=filetime.timestamp, offset=1456, relative_key_path=(
-            'ControlSet001\\Control\\Session Manager\\AppCompatCache'))
-
-    registry_value = dfwinreg_fake.FakeWinRegistryValue(
-        'AppCompatCache', data=binary_data,
-        data_type=dfwinreg_definitions.REG_BINARY)
-    registry_key.AddValue(registry_value)
-
-    return registry_key
-
-  def testFilters(self):
-    """Tests the FILTERS class attribute."""
-    plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
-
-    self._AssertFiltersOnKeyPath(plugin, 'HKEY_LOCAL_MACHINE\\System', (
-        'CurrentControlSet\\Control\\Session Manager\\AppCompatibility'))
-
-    self._AssertFiltersOnKeyPath(plugin, 'HKEY_LOCAL_MACHINE\\System', (
-        'CurrentControlSet\\Control\\Session Manager\\AppCompatCache'))
-
-    self._AssertNotFiltersOnKeyPath(
-        plugin, 'HKEY_LOCAL_MACHINE\\System', 'Bogus')
-
-  def testProcessWindowsXP(self):
-    """Tests the Process function for Windows XP AppCompatCache data."""
-    test_file_entry = test_lib.TestFileEntry('SYSTEM-XP')
-    registry_key = self._CreateTestKey(
-        '2015-06-15 11:53:37.043061', self._TEST_DATA_XP)
-    plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
-    storage_writer = self._ParseKeyWithPlugin(
-        registry_key, plugin, file_entry=test_file_entry)
-
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 1)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    expected_key_path = (
-        'HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\'
-        'AppCompatCache')
-
-    expected_event_values = {
-        'data_type': 'windows:registry:appcompatcache',
-        'entry_index': 1,
-        'file_entry_modification_time': '2004-08-04T14:00:00.0000000+00:00',
-        'key_path': expected_key_path,
-        'last_update_time': '2009-09-20T11:59:16.3281250+00:00',
-        'path': '\\??\\C:\\WINDOWS\\system32\\hticons.dll'}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
-
-  def testProcessWindows2003(self):
-    """Tests the Process function for Windows 2003 AppCompatCache data."""
-    test_file_entry = test_lib.TestFileEntry('SYSTEM-Windows2003')
-    registry_key = self._CreateTestKey(
-        '2015-06-15 11:53:37.043061', self._TEST_DATA_2003)
-    plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
-    storage_writer = self._ParseKeyWithPlugin(
-        registry_key, plugin, file_entry=test_file_entry)
-
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 1)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    expected_key_path = (
-        'HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\'
-        'AppCompatCache')
-
-    expected_event_values = {
-        'data_type': 'windows:registry:appcompatcache',
-        'entry_index': 1,
-        'file_entry_modification_time': '2003-03-24T20:32:18.0000000+00:00',
-        'key_path': expected_key_path,
-        'last_update_time': None,
-        'path': (
-            '\\??\\C:\\WINDOWS\\Microsoft.NET\\Framework\\v1.1.4322\\ngen.exe')}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
-
-    # TODO: implement 64 bit
-
-  def testProcessWindowsVista(self):
-    """Tests the Process function for Windows Vista AppCompatCache data."""
-    test_file_entry = test_lib.TestFileEntry('SYSTEM-Vista')
-    registry_key = self._CreateTestKey(
-        '2015-06-15 11:53:37.043061', self._TEST_DATA_VISTA)
-    plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
-    storage_writer = self._ParseKeyWithPlugin(
-        registry_key, plugin, file_entry=test_file_entry)
-
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 1)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    expected_key_path = (
-        'HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\'
-        'AppCompatCache')
-
-    expected_event_values = {
-        'data_type': 'windows:registry:appcompatcache',
-        'entry_index': 1,
-        'file_entry_modification_time': '2006-11-02T12:35:24.7041218+00:00',
-        'key_path': expected_key_path,
-        'last_update_time': None,
-        'path': '\\??\\C:\\Windows\\SYSTEM32\\WISPTIS.EXE'}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
-
-    # TODO: implement 64 bit
-
-  def testProcessWindows7(self):
-    """Tests the Process function for Windows 7 AppCompatCache data."""
-    test_file_entry = self._GetTestFileEntry(['SYSTEM'])
-    key_path = (
-        'HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\'
-        'Session Manager\\AppCompatCache')
-
-    win_registry = self._GetWinRegistryFromFileEntry(test_file_entry)
-    registry_key = win_registry.GetKeyByPath(key_path)
-    plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
-    storage_writer = self._ParseKeyWithPlugin(
-        registry_key, plugin, file_entry=test_file_entry)
-
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 330)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    expected_event_values = {
-        'data_type': 'windows:registry:appcompatcache',
-        'entry_index': 10,
-        'file_entry_modification_time': '2012-04-04T01:46:37.9329644+00:00',
-        'key_path': key_path,
-        'last_update_time': None,
-        'path': '\\??\\C:\\Windows\\PSEXESVC.EXE'}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 9)
-    self.CheckEventData(event_data, expected_event_values)
-
-    # TODO: implement 64 bit
-
-  def testProcessWindows8_0(self):
-    """Tests the Process function for Windows 8.0 AppCompatCache data."""
-    test_file_entry = test_lib.TestFileEntry('SYSTEM-Windows8.0')
-    registry_key = self._CreateTestKey(
-        '2015-06-15 11:53:37.043061', self._TEST_DATA_8_0)
-    plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
-    storage_writer = self._ParseKeyWithPlugin(
-        registry_key, plugin, file_entry=test_file_entry)
-
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 1)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    expected_key_path = (
-        'HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\'
-        'AppCompatCache')
-
-    expected_event_values = {
-        'data_type': 'windows:registry:appcompatcache',
-        'entry_index': 1,
-        'file_entry_modification_time': '2012-02-18T05:18:23.9350000+00:00',
-        'key_path': expected_key_path,
-        'last_update_time': None,
-        'path': 'SYSVOL\\Windows\\System32\\wbem\\WmiPrvSE.exe'}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
-
-  def testProcessWindows8_1(self):
-    """Tests the Process function for Windows 8.1 AppCompatCache data."""
-    test_file_entry = test_lib.TestFileEntry('SYSTEM-Windows8.1')
-    registry_key = self._CreateTestKey(
-        '2015-06-15 11:53:37.043061', self._TEST_DATA_8_1)
-    plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
-    storage_writer = self._ParseKeyWithPlugin(
-        registry_key, plugin, file_entry=test_file_entry)
-
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 1)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    expected_key_path = (
-        'HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\'
-        'AppCompatCache')
-
-    expected_event_values = {
-        'data_type': 'windows:registry:appcompatcache',
-        'entry_index': 1,
-        'file_entry_modification_time': '2013-08-22T12:35:25.3750709+00:00',
-        'key_path': expected_key_path,
-        'last_update_time': None,
-        'path': 'SYSVOL\\Windows\\System32\\dllhost.exe'}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
-
-  def testProcessWindows10(self):
-    """Tests the Process function for Windows 10 AppCompatCache data."""
-    test_file_entry = test_lib.TestFileEntry('SYSTEM-Windows10')
-    registry_key = self._CreateTestKey(
-        '2015-06-15 11:53:37.043061', self._TEST_DATA_10)
-    plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
-    storage_writer = self._ParseKeyWithPlugin(
-        registry_key, plugin, file_entry=test_file_entry)
-
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 1)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    expected_key_path = (
-        'HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\'
-        'AppCompatCache')
-
-    expected_event_values = {
-        'data_type': 'windows:registry:appcompatcache',
-        'entry_index': 1,
-        'file_entry_modification_time': '2014-09-22T06:42:39.0000000+00:00',
-        'key_path': expected_key_path,
-        'last_update_time': None,
-        'path': 'C:\\Windows\\system32\\MpSigStub.exe'}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
-
-  def testProcessWindows10Creator(self):
-    """Tests the Process function for Windows 10 Creator AppCompatCache data."""
-    test_file_entry = test_lib.TestFileEntry('SYSTEM-Windows10-Creator')
-    registry_key = self._CreateTestKey(
-        '2015-06-15 11:53:37.043061', self._TEST_DATA_10_CREATOR)
-    plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
-    storage_writer = self._ParseKeyWithPlugin(
-        registry_key, plugin, file_entry=test_file_entry)
-
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 1)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    expected_key_path = (
-        'HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\'
-        'AppCompatCache')
-
-    expected_event_values = {
-        'data_type': 'windows:registry:appcompatcache',
-        'entry_index': 1,
-        'file_entry_modification_time': '2017-03-16T22:56:01.2487145+00:00',
-        'key_path': expected_key_path,
-        'last_update_time': None,
-        'path': (
-            'C:\\Program Files (x86)\\NVIDIA Corporation\\3D Vision\\'
-            'nvstreg.exe')}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
-
-
-if __name__ == '__main__':
-  unittest.main()
+    """Tests for the AppCompatCache Windows Registry plugin."""
+
+    _TEST_DATA_XP = (
+        b"\xef\xbe\xad\xde\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\\\x00?\x00?\x00\\\x00C\x00:\x00\\\x00W\x00I\x00N\x00D\x00O\x00W\x00S\x00"
+        b"\\\x00s\x00y\x00s\x00t\x00e\x00m\x003\x002\x00\\\x00h\x00t\x00i\x00c\x00o\x00"
+        b"n\x00s\x00.\x00d\x00l\x00l\x00\x00\x00D\x00o\x00w\x00n\x00l\x00o\x00a\x00d"
+        b"\x00\\\x00b\x007\x00f\x000\x00b\x002\x008\x009\x002\x00b\x002\x001\x002\x001"
+        b"\x001\x00a\x005\x006\x003\x000\x005\x001\x008\x00d\x000\x005\x008\x00f\x004"
+        b"\x008\x00d\x009\x00\\\x00u\x00p\x00d\x00a\x00t\x00e\x00\\\x00u\x00p\x00d\x00a"
+        b"\x00t\x00e\x00.\x00e\x00x\x00e\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        b"\x00\x00\x00\x00\x00\x00\xb0\xe9T+z\xc4\x01\x00\xae\x00\x00\x00\x00\x00\x00b"
+        b"\xd3\x0e\xc7\xe99\xca\x01"
+    )
+
+    _TEST_DATA_2003 = (
+        b"\xfe\x0f\xdc\xba\x01\x00\x00\x00r\x00t\x00 \x00\x00\x00\x005\x86vD\xf2\xc2"
+        b"\x01\x00 \x01\x00\x00\x00\x00\x00\\\x00?\x00?\x00\\\x00C\x00:\x00\\\x00W\x00I"
+        b"\x00N\x00D\x00O\x00W\x00S\x00\\\x00M\x00i\x00c\x00r\x00o\x00s\x00o\x00f\x00t"
+        b"\x00.\x00N\x00E\x00T\x00\\\x00F\x00r\x00a\x00m\x00e\x00w\x00o\x00r\x00k\x00\\"
+        b"\x00v\x001\x00.\x001\x00.\x004\x003\x002\x002\x00\\\x00n\x00g\x00e\x00n\x00."
+        b"\x00e\x00x\x00e\x00\x00\x00"
+    )
+
+    _TEST_DATA_VISTA = (
+        b"\xfe\x0f\xdc\xba\x01\x00\x00\x00F\x00H\x00 \x00\x00\x00\xc2\xfe\x87^{\xfe\xc6"
+        b"\x01\x03\x00\x00\x00\x00\x00\x00\x00\\\x00?\x00?\x00\\\x00C\x00:\x00\\\x00W"
+        b"\x00i\x00n\x00d\x00o\x00w\x00s\x00\\\x00S\x00Y\x00S\x00T\x00E\x00M\x003\x002"
+        b"\x00\\\x00W\x00I\x00S\x00P\x00T\x00I\x00S\x00.\x00E\x00X\x00E\x00\x00\x00"
+    )
+
+    _TEST_DATA_8_0 = bytes(
+        bytearray(
+            [
+                0x80,
+                0x00,
+                0x00,
+                0x00,
+                0x2E,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x09,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x02,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x4A,
+                0x01,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x05,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x24,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x02,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x02,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x08,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x30,
+                0x30,
+                0x74,
+                0x73,
+                0x9E,
+                0x6B,
+                0x3C,
+                0x8A,
+                0x68,
+                0x00,
+                0x00,
+                0x00,
+                0x52,
+                0x00,
+                0x53,
+                0x00,
+                0x59,
+                0x00,
+                0x53,
+                0x00,
+                0x56,
+                0x00,
+                0x4F,
+                0x00,
+                0x4C,
+                0x00,
+                0x5C,
+                0x00,
+                0x57,
+                0x00,
+                0x69,
+                0x00,
+                0x6E,
+                0x00,
+                0x64,
+                0x00,
+                0x6F,
+                0x00,
+                0x77,
+                0x00,
+                0x73,
+                0x00,
+                0x5C,
+                0x00,
+                0x53,
+                0x00,
+                0x79,
+                0x00,
+                0x73,
+                0x00,
+                0x74,
+                0x00,
+                0x65,
+                0x00,
+                0x6D,
+                0x00,
+                0x33,
+                0x00,
+                0x32,
+                0x00,
+                0x5C,
+                0x00,
+                0x77,
+                0x00,
+                0x62,
+                0x00,
+                0x65,
+                0x00,
+                0x6D,
+                0x00,
+                0x5C,
+                0x00,
+                0x57,
+                0x00,
+                0x6D,
+                0x00,
+                0x69,
+                0x00,
+                0x50,
+                0x00,
+                0x72,
+                0x00,
+                0x76,
+                0x00,
+                0x53,
+                0x00,
+                0x45,
+                0x00,
+                0x2E,
+                0x00,
+                0x65,
+                0x00,
+                0x78,
+                0x00,
+                0x65,
+                0x00,
+                0x43,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0xF0,
+                0xA4,
+                0xA4,
+                0xBC,
+                0xFC,
+                0xED,
+                0xCC,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+            ]
+        )
+    )
+
+    _TEST_DATA_8_1 = bytes(
+        bytearray(
+            [
+                0x80,
+                0x00,
+                0x00,
+                0x00,
+                0x09,
+                0x15,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x09,
+                0x01,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x06,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x73,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x46,
+                0x15,
+                0x00,
+                0x00,
+                0x3A,
+                0x00,
+                0x00,
+                0x00,
+                0x47,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x38,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x6C,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x6C,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x38,
+                0x30,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x31,
+                0x30,
+                0x74,
+                0x73,
+                0xBC,
+                0x4C,
+                0xA0,
+                0x05,
+                0x5E,
+                0x00,
+                0x00,
+                0x00,
+                0x46,
+                0x00,
+                0x53,
+                0x00,
+                0x59,
+                0x00,
+                0x53,
+                0x00,
+                0x56,
+                0x00,
+                0x4F,
+                0x00,
+                0x4C,
+                0x00,
+                0x5C,
+                0x00,
+                0x57,
+                0x00,
+                0x69,
+                0x00,
+                0x6E,
+                0x00,
+                0x64,
+                0x00,
+                0x6F,
+                0x00,
+                0x77,
+                0x00,
+                0x73,
+                0x00,
+                0x5C,
+                0x00,
+                0x53,
+                0x00,
+                0x79,
+                0x00,
+                0x73,
+                0x00,
+                0x74,
+                0x00,
+                0x65,
+                0x00,
+                0x6D,
+                0x00,
+                0x33,
+                0x00,
+                0x32,
+                0x00,
+                0x5C,
+                0x00,
+                0x64,
+                0x00,
+                0x6C,
+                0x00,
+                0x6C,
+                0x00,
+                0x68,
+                0x00,
+                0x6F,
+                0x00,
+                0x73,
+                0x00,
+                0x74,
+                0x00,
+                0x2E,
+                0x00,
+                0x65,
+                0x00,
+                0x78,
+                0x00,
+                0x65,
+                0x00,
+                0x00,
+                0x00,
+                0x7F,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x11,
+                0x00,
+                0x01,
+                0xB5,
+                0x1F,
+                0x73,
+                0x13,
+                0x34,
+                0x9F,
+                0xCE,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+            ]
+        )
+    )
+
+    _TEST_DATA_10 = bytes(
+        bytearray(
+            [
+                0x30,
+                0x00,
+                0x00,
+                0x00,
+                0x0A,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0xC9,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x31,
+                0x30,
+                0x74,
+                0x73,
+                0x64,
+                0x7E,
+                0xCD,
+                0xC9,
+                0xCC,
+                0x00,
+                0x00,
+                0x00,
+                0x42,
+                0x00,
+                0x43,
+                0x00,
+                0x3A,
+                0x00,
+                0x5C,
+                0x00,
+                0x57,
+                0x00,
+                0x69,
+                0x00,
+                0x6E,
+                0x00,
+                0x64,
+                0x00,
+                0x6F,
+                0x00,
+                0x77,
+                0x00,
+                0x73,
+                0x00,
+                0x5C,
+                0x00,
+                0x73,
+                0x00,
+                0x79,
+                0x00,
+                0x73,
+                0x00,
+                0x74,
+                0x00,
+                0x65,
+                0x00,
+                0x6D,
+                0x00,
+                0x33,
+                0x00,
+                0x32,
+                0x00,
+                0x5C,
+                0x00,
+                0x4D,
+                0x00,
+                0x70,
+                0x00,
+                0x53,
+                0x00,
+                0x69,
+                0x00,
+                0x67,
+                0x00,
+                0x53,
+                0x00,
+                0x74,
+                0x00,
+                0x75,
+                0x00,
+                0x62,
+                0x00,
+                0x2E,
+                0x00,
+                0x65,
+                0x00,
+                0x78,
+                0x00,
+                0x65,
+                0x00,
+                0x80,
+                0x99,
+                0xE3,
+                0x66,
+                0x30,
+                0xD6,
+                0xCF,
+                0x01,
+                0x7C,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x02,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x02,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x08,
+                0x00,
+                0x00,
+                0x00,
+                0x08,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x08,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x10,
+                0x00,
+                0x00,
+                0x00,
+                0x08,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x40,
+                0x00,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x03,
+                0x00,
+                0x00,
+                0x00,
+                0x20,
+                0x00,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+            ]
+        )
+    )
+
+    _TEST_DATA_10_CREATOR = bytes(
+        bytearray(
+            [
+                0x34,
+                0x00,
+                0x00,
+                0x00,
+                0x1A,
+                0x4E,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x53,
+                0x07,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x7A,
+                0x23,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0xFA,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x31,
+                0x30,
+                0x74,
+                0x73,
+                0xD5,
+                0xF1,
+                0x23,
+                0x93,
+                0xD4,
+                0x00,
+                0x00,
+                0x00,
+                0x7E,
+                0x00,
+                0x43,
+                0x00,
+                0x3A,
+                0x00,
+                0x5C,
+                0x00,
+                0x50,
+                0x00,
+                0x72,
+                0x00,
+                0x6F,
+                0x00,
+                0x67,
+                0x00,
+                0x72,
+                0x00,
+                0x61,
+                0x00,
+                0x6D,
+                0x00,
+                0x20,
+                0x00,
+                0x46,
+                0x00,
+                0x69,
+                0x00,
+                0x6C,
+                0x00,
+                0x65,
+                0x00,
+                0x73,
+                0x00,
+                0x20,
+                0x00,
+                0x28,
+                0x00,
+                0x78,
+                0x00,
+                0x38,
+                0x00,
+                0x36,
+                0x00,
+                0x29,
+                0x00,
+                0x5C,
+                0x00,
+                0x4E,
+                0x00,
+                0x56,
+                0x00,
+                0x49,
+                0x00,
+                0x44,
+                0x00,
+                0x49,
+                0x00,
+                0x41,
+                0x00,
+                0x20,
+                0x00,
+                0x43,
+                0x00,
+                0x6F,
+                0x00,
+                0x72,
+                0x00,
+                0x70,
+                0x00,
+                0x6F,
+                0x00,
+                0x72,
+                0x00,
+                0x61,
+                0x00,
+                0x74,
+                0x00,
+                0x69,
+                0x00,
+                0x6F,
+                0x00,
+                0x6E,
+                0x00,
+                0x5C,
+                0x00,
+                0x33,
+                0x00,
+                0x44,
+                0x00,
+                0x20,
+                0x00,
+                0x56,
+                0x00,
+                0x69,
+                0x00,
+                0x73,
+                0x00,
+                0x69,
+                0x00,
+                0x6F,
+                0x00,
+                0x6E,
+                0x00,
+                0x5C,
+                0x00,
+                0x6E,
+                0x00,
+                0x76,
+                0x00,
+                0x73,
+                0x00,
+                0x74,
+                0x00,
+                0x72,
+                0x00,
+                0x65,
+                0x00,
+                0x67,
+                0x00,
+                0x2E,
+                0x00,
+                0x65,
+                0x00,
+                0x78,
+                0x00,
+                0x65,
+                0x00,
+                0xE9,
+                0x09,
+                0x99,
+                0x7B,
+                0xA8,
+                0x9E,
+                0xD2,
+                0x01,
+                0x48,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x02,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x08,
+                0x00,
+                0x00,
+                0x02,
+                0x00,
+                0x00,
+                0x00,
+                0x4C,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x03,
+                0x00,
+                0x00,
+                0x00,
+                0x40,
+                0x00,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x20,
+                0x00,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x04,
+                0x00,
+                0x00,
+                0x00,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+            ]
+        )
+    )
+
+    def _CreateTestKey(self, time_string, binary_data):
+        """Creates Registry keys and values for testing.
+
+        Args:
+          time_string (str): key last written date and time.
+          binary_data (bytes): AppCompatCache Registry value data.
+
+        Returns:
+          dfwinreg.WinRegistryKey: a Windows Registry key.
+        """
+        filetime = dfdatetime_filetime.Filetime()
+        filetime.CopyFromDateTimeString(time_string)
+        registry_key = dfwinreg_fake.FakeWinRegistryKey(
+            "AppCompatCache",
+            key_path_prefix="HKEY_LOCAL_MACHINE\\System",
+            last_written_time=filetime.timestamp,
+            offset=1456,
+            relative_key_path=(
+                "ControlSet001\\Control\\Session Manager\\AppCompatCache"
+            ),
+        )
+        registry_value = dfwinreg_fake.FakeWinRegistryValue(
+            "AppCompatCache",
+            data=binary_data,
+            data_type=dfwinreg_definitions.REG_BINARY,
+        )
+        registry_key.AddValue(registry_value)
+
+        return registry_key
+
+    def testFilters(self):
+        """Tests the FILTERS class attribute."""
+        plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
+
+        self._AssertFiltersOnKeyPath(
+            plugin,
+            "HKEY_LOCAL_MACHINE\\System",
+            "CurrentControlSet\\Control\\Session Manager\\AppCompatibility",
+        )
+        self._AssertFiltersOnKeyPath(
+            plugin,
+            "HKEY_LOCAL_MACHINE\\System",
+            "CurrentControlSet\\Control\\Session Manager\\AppCompatCache",
+        )
+        self._AssertFiltersOnKeyPath(
+            plugin,
+            "HKEY_LOCAL_MACHINE\\System",
+            "ControlSet001\\Control\\Session Manager\\AppCompatCache",
+        )
+        self._AssertFiltersOnKeyPath(
+            plugin,
+            "HKEY_LOCAL_MACHINE\\System",
+            "ControlSet47\\Control\\Session Manager\\AppCompatCache",
+        )
+        self._AssertNotFiltersOnKeyPath(plugin, "HKEY_LOCAL_MACHINE\\System", "Bogus")
+
+    def testProcessWindowsXP(self):
+        """Tests the Process function for Windows XP AppCompatCache data."""
+        test_file_entry = test_lib.TestFileEntry("SYSTEM-XP")
+        registry_key = self._CreateTestKey(
+            "2015-06-15 11:53:37.043061", self._TEST_DATA_XP
+        )
+        plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
+
+        storage_writer = self._ParseKeyWithPlugin(
+            registry_key, plugin, file_entry=test_file_entry
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 1)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        expected_key_path = (
+            "HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\"
+            "AppCompatCache"
+        )
+        expected_event_values = {
+            "data_type": "windows:registry:appcompatcache",
+            "entry_index": 1,
+            "file_entry_modification_time": "2004-08-04T14:00:00.0000000+00:00",
+            "key_path": expected_key_path,
+            "last_update_time": "2009-09-20T11:59:16.3281250+00:00",
+            "registry_last_written_time": "2015-06-15T11:53:37.0430610+00:00",
+            "path": "\\??\\C:\\WINDOWS\\system32\\hticons.dll",
+            "insertion_flags": None,
+            "control_set": 1,
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
+
+    def testProcessWindows2003(self):
+        """Tests the Process function for Windows 2003 AppCompatCache data."""
+        test_file_entry = test_lib.TestFileEntry("SYSTEM-Windows2003")
+        registry_key = self._CreateTestKey(
+            "2015-06-15 11:53:37.043061", self._TEST_DATA_2003
+        )
+        plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
+
+        storage_writer = self._ParseKeyWithPlugin(
+            registry_key, plugin, file_entry=test_file_entry
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 1)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        expected_key_path = (
+            "HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\"
+            "AppCompatCache"
+        )
+        expected_event_values = {
+            "data_type": "windows:registry:appcompatcache",
+            "entry_index": 1,
+            "file_entry_modification_time": "2003-03-24T20:32:18.0000000+00:00",
+            "key_path": expected_key_path,
+            "last_update_time": None,
+            "registry_last_written_time": "2015-06-15T11:53:37.0430610+00:00",
+            "path": (
+                "\\??\\C:\\WINDOWS\\Microsoft.NET\\Framework\\v1.1.4322\\ngen.exe"
+            ),
+            "insertion_flags": None,
+            "control_set": 1,
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
+
+        # TODO: implement 64 bit
+
+    def testProcessWindowsVista(self):
+        """Tests the Process function for Windows Vista AppCompatCache data."""
+        test_file_entry = test_lib.TestFileEntry("SYSTEM-Vista")
+        registry_key = self._CreateTestKey(
+            "2015-06-15 11:53:37.043061", self._TEST_DATA_VISTA
+        )
+        plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
+
+        storage_writer = self._ParseKeyWithPlugin(
+            registry_key, plugin, file_entry=test_file_entry
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 1)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        expected_key_path = (
+            "HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\"
+            "AppCompatCache"
+        )
+        expected_event_values = {
+            "data_type": "windows:registry:appcompatcache",
+            "entry_index": 1,
+            "file_entry_modification_time": "2006-11-02T12:35:24.7041218+00:00",
+            "key_path": expected_key_path,
+            "last_update_time": None,
+            "registry_last_written_time": "2015-06-15T11:53:37.0430610+00:00",
+            "path": "\\??\\C:\\Windows\\SYSTEM32\\WISPTIS.EXE",
+            "insertion_flags": None,
+            "control_set": 1,
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
+
+        # TODO: implement 64 bit
+
+    def testProcessWindows7(self):
+        """Tests the Process function for Windows 7 AppCompatCache data."""
+        test_file_entry = self._GetTestFileEntry(["SYSTEM"])
+        key_path = (
+            "HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\"
+            "AppCompatCache"
+        )
+        plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
+
+        storage_writer = self._ParseKeyPathWithFileEntry(
+            test_file_entry,
+            key_path,
+            plugin,
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 330)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        expected_event_values = {
+            "data_type": "windows:registry:appcompatcache",
+            "entry_index": 10,
+            "file_entry_modification_time": "2012-04-04T01:46:37.9329644+00:00",
+            "key_path": key_path,
+            "last_update_time": None,
+            "registry_last_written_time": "2012-04-04T01:58:40.7767499+00:00",
+            "path": "\\??\\C:\\Windows\\PSEXESVC.EXE",
+            "insertion_flags": 7,
+            "control_set": 1,
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 9)
+        self.CheckEventData(event_data, expected_event_values)
+
+        # TODO: implement 64 bit
+
+    def testProcessWindows8_0(self):
+        """Tests the Process function for Windows 8.0 AppCompatCache data."""
+        test_file_entry = test_lib.TestFileEntry("SYSTEM-Windows8.0")
+        registry_key = self._CreateTestKey(
+            "2015-06-15 11:53:37.043061", self._TEST_DATA_8_0
+        )
+        plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
+
+        storage_writer = self._ParseKeyWithPlugin(
+            registry_key, plugin, file_entry=test_file_entry
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 1)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        expected_key_path = (
+            "HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\"
+            "AppCompatCache"
+        )
+        expected_event_values = {
+            "data_type": "windows:registry:appcompatcache",
+            "entry_index": 1,
+            "file_entry_modification_time": "2012-02-18T05:18:23.9350000+00:00",
+            "key_path": expected_key_path,
+            "last_update_time": None,
+            "registry_last_written_time": "2015-06-15T11:53:37.0430610+00:00",
+            "path": "SYSVOL\\Windows\\System32\\wbem\\WmiPrvSE.exe",
+            "insertion_flags": 67,
+            "control_set": 1,
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
+
+    def testProcessWindows8_1(self):
+        """Tests the Process function for Windows 8.1 AppCompatCache data."""
+        test_file_entry = test_lib.TestFileEntry("SYSTEM-Windows8.1")
+        registry_key = self._CreateTestKey(
+            "2015-06-15 11:53:37.043061", self._TEST_DATA_8_1
+        )
+        plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
+
+        storage_writer = self._ParseKeyWithPlugin(
+            registry_key, plugin, file_entry=test_file_entry
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 1)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        expected_key_path = (
+            "HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\"
+            "AppCompatCache"
+        )
+        expected_event_values = {
+            "data_type": "windows:registry:appcompatcache",
+            "entry_index": 1,
+            "file_entry_modification_time": "2013-08-22T12:35:25.3750709+00:00",
+            "key_path": expected_key_path,
+            "last_update_time": None,
+            "registry_last_written_time": "2015-06-15T11:53:37.0430610+00:00",
+            "path": "SYSVOL\\Windows\\System32\\dllhost.exe",
+            "insertion_flags": 8323072,
+            "control_set": 1,
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
+
+    def testProcessWindows10(self):
+        """Tests the Process function for Windows 10 AppCompatCache data."""
+        test_file_entry = test_lib.TestFileEntry("SYSTEM-Windows10")
+        registry_key = self._CreateTestKey(
+            "2015-06-15 11:53:37.043061", self._TEST_DATA_10
+        )
+        plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
+
+        storage_writer = self._ParseKeyWithPlugin(
+            registry_key, plugin, file_entry=test_file_entry
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 1)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        expected_key_path = (
+            "HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\"
+            "AppCompatCache"
+        )
+        expected_event_values = {
+            "data_type": "windows:registry:appcompatcache",
+            "entry_index": 1,
+            "file_entry_modification_time": "2014-09-22T06:42:39.0000000+00:00",
+            "key_path": expected_key_path,
+            "last_update_time": None,
+            "registry_last_written_time": "2015-06-15T11:53:37.0430610+00:00",
+            "path": "C:\\Windows\\system32\\MpSigStub.exe",
+            "insertion_flags": None,
+            "control_set": 1,
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
+
+    def testProcessWindows10Creator(self):
+        """Tests the Process function for Windows 10 Creator AppCompatCache data."""
+        test_file_entry = test_lib.TestFileEntry("SYSTEM-Windows10-Creator")
+        registry_key = self._CreateTestKey(
+            "2015-06-15 11:53:37.043061", self._TEST_DATA_10_CREATOR
+        )
+        plugin = appcompatcache.AppCompatCacheWindowsRegistryPlugin()
+
+        storage_writer = self._ParseKeyWithPlugin(
+            registry_key, plugin, file_entry=test_file_entry
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 1)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
+
+        expected_key_path = (
+            "HKEY_LOCAL_MACHINE\\System\\ControlSet001\\Control\\Session Manager\\"
+            "AppCompatCache"
+        )
+        expected_event_values = {
+            "data_type": "windows:registry:appcompatcache",
+            "entry_index": 1,
+            "file_entry_modification_time": "2017-03-16T22:56:01.2487145+00:00",
+            "key_path": expected_key_path,
+            "last_update_time": None,
+            "registry_last_written_time": "2015-06-15T11:53:37.0430610+00:00",
+            "path": (
+                "C:\\Program Files (x86)\\NVIDIA Corporation\\3D Vision\\nvstreg.exe"
+            ),
+            "insertion_flags": None,
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 0)
+        self.CheckEventData(event_data, expected_event_values)
+
+
+if __name__ == "__main__":
+    unittest.main()

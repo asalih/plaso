@@ -1,9 +1,27 @@
 # Plaso timeliner configuration.
 ---
+data_type: 'android:airtag:event'
+attribute_mappings:
+- name: 'first_discovery_time'
+  description: 'First Discovery Time'
+- name: 'last_seen_time'
+  description: 'Last Seen Time'
+place_holder_event: true
+---
 data_type: 'android:app_usage'
 attribute_mappings:
 - name: 'last_resume_time'
   description: 'Last Resume Time'
+place_holder_event: true
+---
+data_type: 'android:burners'
+attribute_mappings:
+- name: 'creation_time'
+  description: 'Creation Time'
+- name: 'expiration_time'
+  description: 'Expiration Time'
+- name: 'last_updated_time'
+  description: 'Last Updated Time'
 place_holder_event: true
 ---
 data_type: 'android:event:battery'
@@ -18,6 +36,12 @@ attribute_mappings:
   description: 'End Time'
 - name: 'start_time'
   description: 'Start Time'
+place_holder_event: true
+---
+data_type: 'android:files_by_google:record'
+attribute_mappings:
+- name: 'modification_time'
+  description: 'Content Modification Time'
 place_holder_event: true
 ---
 data_type: 'android:logcat'
@@ -38,6 +62,24 @@ attribute_mappings:
   description: 'Creation Time'
 place_holder_event: true
 ---
+data_type: 'android:sqlite:app_launch'
+attribute_mappings:
+- name: 'launch_time'
+  description: 'App Launch Time'
+place_holder_event: true
+---
+data_type: 'android:sqlite:app_usage'
+attribute_mappings:
+- name: 'start_time'
+  description: 'Start Time'
+place_holder_event: false
+---
+data_type: 'android:sqlite:downloads'
+attribute_mappings:
+- name: 'modification_time'
+  description: 'Content Modification Time'
+place_holder_event: true
+---
 data_type: 'android:tango:contact'
 attribute_mappings:
 - name: 'access_time'
@@ -46,12 +88,6 @@ attribute_mappings:
   description: 'Friend Request Time'
 - name: 'last_active_time'
   description: 'Last Active Time'
-place_holder_event: false
----
-data_type: 'android:sqlite:app_usage'
-attribute_mappings:
-- name: 'start_time'
-  description: 'Start Time'
 place_holder_event: false
 ---
 data_type: 'android:tango:conversation'
@@ -87,6 +123,14 @@ attribute_mappings:
   description: 'Creation Time'
 place_holder_event: true
 ---
+data_type: 'android:viber:call'
+attribute_mappings:
+- name: 'end_time'
+  description: 'End Time'
+- name: 'start_time'
+  description: 'Start Time'
+place_holder_event: true
+---
 data_type: 'android:webview:cookie'
 attribute_mappings:
 - name: 'expiration_time'
@@ -105,6 +149,36 @@ data_type: 'apache:access_log:entry'
 attribute_mappings:
 - name: 'recorded_time'
   description: 'Recorded Time'
+place_holder_event: true
+---
+data_type: 'atlassian:bitbucket:access'
+attribute_mappings:
+- name: 'recorded_time'
+  description: 'Recorded Time'
+place_holder_event: true
+---
+data_type: 'atlassian:bitbucket:audit'
+attribute_mappings:
+- name: 'recorded_time'
+  description: 'Recorded Time'
+place_holder_event: true
+---
+data_type: 'atlassian:bitbucket:line'
+attribute_mappings:
+- name: 'written_time'
+  description: 'Content Modification Time'
+place_holder_event: true
+---
+data_type: 'atlassian:confluence:line'
+attribute_mappings:
+- name: 'written_time'
+  description: 'Content Modification Time'
+place_holder_event: true
+---
+data_type: 'atlassian:jira:line'
+attribute_mappings:
+- name: 'written_time'
+  description: 'Content Modification Time'
 place_holder_event: true
 ---
 data_type: 'av:defender:detection_history'
@@ -173,20 +247,6 @@ data_type: 'bsm:entry'
 attribute_mappings:
 - name: 'written_time'
   description: 'Content Modification Time'
-place_holder_event: true
----
-# TODO: prefix data_type with 'windows:registry:'.
-data_type: 'ccleaner:configuration'
-attribute_mappings:
-- name: 'last_written_time'
-  description: 'Content Modification Time'
-place_holder_event: true
----
-# TODO: prefix data_type with 'windows:registry:'.
-data_type: 'ccleaner:update'
-attribute_mappings:
-- name: 'update_time'
-  description: 'Update Time'
 place_holder_event: true
 ---
 data_type: 'chrome:autofill:entry'
@@ -283,7 +343,7 @@ place_holder_event: true
 ---
 data_type: 'cri:container:log:entry'
 attribute_mappings:
-- name: 'event_datetime'
+- name: 'written_time'
   description: 'Content Modification Time'
 place_holder_event: true
 ---
@@ -487,6 +547,12 @@ attribute_mappings:
   description: 'Creation Time'
 place_holder_event: false
 ---
+data_type: 'ios:accounts:entry'
+attribute_mappings:
+- name: 'creation_time'
+  description: 'Creation Time'
+place_holder_event: true
+---
 data_type: 'ios:app_privacy:access'
 attribute_mappings:
 - name: 'recorded_time'
@@ -505,16 +571,118 @@ attribute_mappings:
   description: 'Last Time Executed'
 place_holder_event: false
 ---
+data_type: 'ios:datausage:event'
+attribute_mappings:
+- name: 'start_time'
+  description: 'Start Time'
+place_holder_event: true
+---
+data_type: 'ios:discord:message'
+attribute_mappings:
+- name: 'sent_time'
+  description: 'Sent Time'
+place_holder_event: true
+---
+data_type: 'ios:health:achievement'
+attribute_mappings:
+- name: 'creation_time'
+  description: 'Creation Time'
+place_holder_event: true
+---
+data_type: 'ios:health:all_watch_sleep'
+attribute_mappings:
+- name: 'end_time'
+  description: 'Start Time'
+- name: 'start_time'
+  description: 'Start Time'
+place_holder_event: true
+---
+data_type: 'ios:health:headphone_audio_levels'
+attribute_mappings:
+- name: 'end_time'
+  description: 'Start Time'
+- name: 'start_time'
+  description: 'Start Time'
+place_holder_event: true
+---
+data_type: 'ios:health:heart_rate'
+attribute_mappings:
+- name: 'added_time'
+  description: 'Added Time'
+- name: 'end_time'
+  description: 'Start Time'
+- name: 'start_time'
+  description: 'Start Time'
+place_holder_event: true
+---
+data_type: 'ios:health:height'
+attribute_mappings:
+- name: 'start_time'
+  description: 'Start Time'
+place_holder_event: true
+---
+data_type: 'ios:health:resting_heart_rate'
+attribute_mappings:
+- name: 'added_time'
+  description: 'Added Time'
+- name: 'end_time'
+  description: 'End Time'
+- name: 'start_time'
+  description: 'Start Time'
+place_holder_event: true
+---
+data_type: 'ios:health:source_devices'
+attribute_mappings:
+- name: 'added_time'
+  description: 'Added Time'
+place_holder_event: true
+---
+data_type: 'ios:health:steps'
+attribute_mappings:
+- name: 'end_time'
+  description: 'End Time'
+- name: 'start_time'
+  description: 'Start Time'
+place_holder_event: true
+---
+data_type: 'ios:health:weight'
+attribute_mappings:
+- name: 'start_time'
+  description: 'Start Time'
+place_holder_event: true
+---
+data_type: 'ios:health:workouts'
+attribute_mappings:
+- name: 'date_time'
+  description: 'Workout Start Time'
+place_holder_event: true
+---
+data_type: 'ios:health:wrist_temperature'
+attribute_mappings:
+- name: 'added_time'
+  description: 'Added Time'
+- name: 'end_time'
+  description: 'End Time'
+- name: 'start_time'
+  description: 'Start Time'
+place_holder_event: true
+---
 data_type: 'ios:idstatuscache:lookup'
 attribute_mappings:
 - name: 'lookup_time'
   description: 'Lookup Time'
 place_holder_event: true
 ---
-data_type: 'ios:datausage:event'
+data_type: 'ios:imohdchat:message'
 attribute_mappings:
-- name: 'start_time'
-  description: 'Start Time'
+- name: 'recorded_time'
+  description: 'Recorded Time'
+place_holder_event: true
+---
+data_type: 'ios:instagram:message'
+attribute_mappings:
+- name: 'sent_time'
+  description: 'Sent Time'
 place_holder_event: true
 ---
 data_type: 'ios:kik:messaging'
@@ -529,6 +697,20 @@ attribute_mappings:
   description: 'Content Modification Time'
 place_holder_event: false
 ---
+data_type: 'ios:mobile_backup:entry'
+attribute_mappings:
+- name: 'account_enabled_time'
+  description: 'Account Enabled Time'
+- name: 'backup_state_time'
+  description: 'Backup State Time'
+place_holder_event: false
+---
+data_type: 'ios:mobile_backup:state'
+attribute_mappings:
+- name: 'backup_time'
+  description: 'Backup Time'
+place_holder_event: false
+---
 data_type: 'ios:netusage:process'
 attribute_mappings:
 - name: 'start_time'
@@ -541,6 +723,14 @@ attribute_mappings:
   description: 'Start Time'
 place_holder_event: true
 ---
+data_type: 'ios:notes:note'
+attribute_mappings:
+- name: 'creation_time'
+  description: 'Creation Time'
+- name: 'modification_time'
+  description: 'Modification Time'
+place_holder_event: true
+---
 data_type: 'ios:powerlog:application_usage'
 attribute_mappings:
 - name: 'start_time'
@@ -551,6 +741,12 @@ data_type: 'ios:screentime:event'
 attribute_mappings:
 - name: 'start_time'
   description: 'Start Time'
+place_holder_event: true
+---
+data_type: 'ios:sim:info'
+attribute_mappings:
+- name: 'last_used_time'
+  description: 'Last Used Time'
 place_holder_event: true
 ---
 data_type: 'ios:sysdiag_log:entry'
@@ -581,10 +777,24 @@ attribute_mappings:
   description: 'Content Modification Time'
 place_holder_event: true
 ---
+data_type: 'ios:wifi:known_networks:entry'
+attribute_mappings:
+- name: 'added_time'
+  description: 'Time network was added'
+- name: 'last_associated_time'
+  description: 'Last associated time'
+place_holder_event: true
+---
 data_type: 'ipod:device:entry'
 attribute_mappings:
 - name: 'last_connected_time'
   description: 'Last Connection Time'
+place_holder_event: true
+---
+data_type: 'ivanti:connect_secure:vc0:record'
+attribute_mappings:
+- name: 'recorded_time'
+  description: 'Recorded Time'
 place_holder_event: true
 ---
 data_type: 'java:download:idx'
@@ -595,6 +805,12 @@ attribute_mappings:
   description: 'Expiration Time'
 - name: 'modification_time'
   description: 'Content Modification Time'
+place_holder_event: true
+---
+data_type: 'jira:access'
+attribute_mappings:
+- name: 'recorded_time'
+  description: 'Recorded Time'
 place_holder_event: true
 ---
 data_type: 'kodi:videos:viewing'
@@ -688,12 +904,6 @@ data_type: 'macos:asl:file'
 attribute_mappings:
 - name: 'creation_time'
   description: 'Creation Time'
-place_holder_event: true
----
-data_type: 'macos:unified_logging:event'
-attribute_mappings:
-- name: 'recorded_time'
-  description: 'Recorded Time'
 place_holder_event: true
 ---
 data_type: 'macos:background_items:entry'
@@ -846,6 +1056,12 @@ attribute_mappings:
   description: 'Backup Snapshot Creation Time'
 place_holder_event: true
 ---
+data_type: 'macos:unified_logging:event'
+attribute_mappings:
+- name: 'recorded_time'
+  description: 'Recorded Time'
+place_holder_event: true
+---
 data_type: 'macos:user:entry'
 attribute_mappings:
 - name: 'last_login_attempt_time'
@@ -912,14 +1128,6 @@ attribute_mappings:
   description: 'Last Scavenge Time'
 place_holder_event: false
 ---
-data_type: 'msie:webcache:cookie'
-attribute_mappings:
-- name: 'expiration_time'
-  description: 'Expiration Time'
-- name: 'modification_time'
-  description: 'Modification Time'
-place_holder_event: true
----
 data_type: 'msiecf:leak'
 place_holder_event: true
 ---
@@ -944,6 +1152,14 @@ attribute_mappings:
   description: 'Unknown Time'
 - name: 'synchronization_time'
   description: 'Synchronization Time'
+place_holder_event: true
+---
+data_type: 'msie:webcache:cookie'
+attribute_mappings:
+- name: 'expiration_time'
+  description: 'Expiration Time'
+- name: 'modification_time'
+  description: 'Modification Time'
 place_holder_event: true
 ---
 data_type: 'networkminer:fileinfos:file'
@@ -1142,14 +1358,6 @@ attribute_mappings:
   description: 'Content Modification Time'
 place_holder_event: true
 ---
-data_type: 'setupapi:log:line'
-attribute_mappings:
-- name: 'end_time'
-  description: 'End Time'
-- name: 'start_time'
-  description: 'Added Time'
-place_holder_event: true
----
 data_type: 'shell:zsh:history'
 attribute_mappings:
 - name: 'last_written_time'
@@ -1294,19 +1502,8 @@ data_type: 'systemd:journal'
 attribute_mappings:
 - name: 'written_time'
   description: 'Content Modification Time'
-place_holder_event: true
----
-# TODO: prefix data_type with 'windows:registry:'.
-data_type: 'task_scheduler:task_cache:entry'
-attribute_mappings:
-- name: 'last_registered_time'
-  description: 'Last registered Time'
-- name: 'last_written_time'
-  description: 'Content Modification Time'
-- name: 'launch_time'
-  description: 'Launch Time'
-- name: 'unknown_time'
-  description: 'Unknown Time'
+- name: 'recorded_time'
+  description: 'Recorded Time'
 place_holder_event: true
 ---
 data_type: 'teamviewer:application_log:entry'
@@ -1343,12 +1540,6 @@ attribute_mappings:
   description: 'Added Time'
 place_holder_event: true
 ---
-data_type: 'windows:diagnosis:eventtranscript'
-attribute_mappings:
-- name: 'recorded_time'
-  description: 'Recorded Time'
-place_holder_event: true
----
 data_type: 'wincc:simatic_s7:entry'
 attribute_mappings:
 - name: 'creation_time'
@@ -1361,16 +1552,16 @@ attribute_mappings:
   description: 'Creation Time'
 place_holder_event: true
 ---
+data_type: 'windows:diagnosis:eventtranscript'
+attribute_mappings:
+- name: 'recorded_time'
+  description: 'Recorded Time'
+place_holder_event: true
+---
 data_type: 'windows:distributed_link_tracking:creation'
 attribute_mappings:
 - name: 'creation_time'
   description: 'Creation Time'
-place_holder_event: true
----
-data_type: 'windows:firewall_log:entry'
-attribute_mappings:
-- name: 'last_written_time'
-  description: 'Content Modification Time'
 place_holder_event: true
 ---
 data_type: 'windows:evt:record'
@@ -1394,6 +1585,12 @@ attribute_mappings:
 - name: 'creation_time'
   description: 'Creation Time'
 - name: 'modification_time'
+  description: 'Content Modification Time'
+place_holder_event: true
+---
+data_type: 'windows:firewall_log:entry'
+attribute_mappings:
+- name: 'last_written_time'
   description: 'Content Modification Time'
 place_holder_event: true
 ---
@@ -1479,6 +1676,8 @@ attribute_mappings:
   description: 'File Last Modification Time'
 - name: 'last_update_time'
   description: 'Last Time Executed'
+- name: 'registry_last_written_time'
+  description: 'Registry Last Written Time'
 place_holder_event: true
 ---
 data_type: 'windows:registry:bagmru'
@@ -1505,13 +1704,27 @@ attribute_mappings:
   description: 'Content Modification Time'
 place_holder_event: true
 ---
-data_type: 'windows:registry:explorer:programcache'
+data_type: 'windows:registry:ccleaner:configuration'
 attribute_mappings:
 - name: 'last_written_time'
   description: 'Content Modification Time'
 place_holder_event: true
 ---
-data_type: 'windows:registry:key_value'
+data_type: 'windows:registry:ccleaner:update'
+attribute_mappings:
+- name: 'update_time'
+  description: 'Update Time'
+place_holder_event: true
+---
+data_type: 'windows:registry:diagnosed_applications'
+attribute_mappings:
+- name: 'last_detection_time'
+  description: 'Last Detection Time'
+- name: 'last_written_time'
+  description: 'Content Modification Time'
+place_holder_event: false
+---
+data_type: 'windows:registry:explorer:programcache'
 attribute_mappings:
 - name: 'last_written_time'
   description: 'Content Modification Time'
@@ -1522,6 +1735,12 @@ attribute_mappings:
 - name: 'installation_time'
   description: 'Installation Time'
 place_holder_event: false
+---
+data_type: 'windows:registry:key_value'
+attribute_mappings:
+- name: 'last_written_time'
+  description: 'Content Modification Time'
+place_holder_event: true
 ---
 data_type: 'windows:registry:mount_points2'
 attribute_mappings:
@@ -1625,6 +1844,18 @@ attribute_mappings:
   description: 'Last Shutdown Time'
 place_holder_event: false
 ---
+data_type: 'windows:registry:task_scheduler:task_cache:entry'
+attribute_mappings:
+- name: 'last_registered_time'
+  description: 'Last registered Time'
+- name: 'last_written_time'
+  description: 'Content Modification Time'
+- name: 'launch_time'
+  description: 'Launch Time'
+- name: 'unknown_time'
+  description: 'Unknown Time'
+place_holder_event: true
+---
 data_type: 'windows:registry:timezone'
 attribute_mappings:
 - name: 'last_written_time'
@@ -1635,6 +1866,12 @@ data_type: 'windows:registry:typedurls'
 attribute_mappings:
 - name: 'last_written_time'
   description: 'Content Modification Time'
+place_holder_event: true
+---
+data_type: 'windows:registry:typedurlstime'
+attribute_mappings:
+- name: 'last_visited_time'
+  description: 'Last Visited Time'
 place_holder_event: true
 ---
 data_type: 'windows:registry:usb'
@@ -1670,10 +1907,23 @@ attribute_mappings:
   description: 'Content Modification Time'
 place_holder_event: true
 ---
+data_type: 'windows:registry:winrar:history'
+attribute_mappings:
+- name: 'last_written_time'
+  description: 'Content Modification Time'
+---
 data_type: 'windows:restore_point:info'
 attribute_mappings:
 - name: 'creation_time'
   description: 'Creation Time'
+place_holder_event: true
+---
+data_type: 'windows:setupapi:log:line'
+attribute_mappings:
+- name: 'end_time'
+  description: 'End Time'
+- name: 'start_time'
+  description: 'Added Time'
 place_holder_event: true
 ---
 data_type: 'windows:shell_item:file_entry'
@@ -1777,12 +2027,6 @@ attribute_mappings:
 - name: 'creation_time'
   description: 'Creation Time'
 place_holder_event: true
----
-# TODO: prefix data_type with 'windows:registry:'.
-data_type: 'winrar:history'
-attribute_mappings:
-- name: 'last_written_time'
-  description: 'Content Modification Time'
 ---
 data_type: 'xchat:log:line'
 attribute_mappings:

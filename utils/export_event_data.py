@@ -1,5 +1,4 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 """Script to extract the event data attribute containers schema."""
 
 import argparse
@@ -12,100 +11,102 @@ import sys
 from plaso.containers import events
 
 
-class EventDataAttributeContainersSchemaExtractor(object):
-  """Event data attribute containers schema extractor."""
+class EventDataAttributeContainersSchemaExtractor:
+    """Event data attribute containers schema extractor."""
 
-  def FormatSchema(self, attribute_containers):
-    """Formats the event data attribute containers as a schema.
+    def _GetClassesFromPackage(self, package, base_class):
+        """Retrieves event data attribute containers from a package.
 
-    Args:
-      attribute_containers (list[class]): event data attribute container
-          classes.
+        Args:
+          package (list[str]): package name segments such as ["plaso", "parsers"].
+          base_class (class): base class.
 
-    Returns:
-      str: event data schema.
-    """
-    lines = []
+        Returns:
+          list[class]: classes.
+        """
+        classes = []
+        package_path = "/".join(package)
+        for _, name, is_package in pkgutil.iter_modules(path=[package_path]):
+            if package_path == "plaso/containers" and name in ("errors", "events"):
+                continue
 
-    for cls in sorted(attribute_containers, key=lambda cls: cls.DATA_TYPE):
-      try:
-        event_data = cls()
-      except TypeError:
-        logging.warning('Unable to inspect: {0:s}'.format(cls.DATA_TYPE))
-        continue
+            sub_package = list(package)
+            sub_package.append(name)
+            if is_package:
+                sub_classes = self._GetClassesFromPackage(sub_package, base_class)
+                classes.extend(sub_classes)
+            else:
+                module_path = ".".join(sub_package)
+                try:
+                    module_object = importlib.import_module(module_path)
+                except ModuleNotFoundError:
+                    continue
 
-      lines.append('{0:s}'.format(event_data.data_type))
-      for name in sorted(event_data.GetAttributeNames()):
-        if name and name[0] != '_':
-          lines.append('  {0:s}'.format(name))
-      lines.append('')
+                for _, cls in inspect.getmembers(module_object, inspect.isclass):
+                    if issubclass(cls, base_class):
+                        classes.append(cls)
 
-    return '\n'.join(lines)
+        return classes
 
-  def _GetAttributeContainersFromPackage(self, package):
-    """Retrieves event data attribute containers from a package.
+    def FormatSchema(self, attribute_containers):
+        """Formats the event data attribute containers as a schema.
 
-    Args:
-      package (list[str]): package name segments such as ["plaso", "parsers"].
+        Args:
+          attribute_containers (list[class]): event data attribute container
+              classes.
 
-    Returns:
-      list[class]: event data attribute container classes.
-    """
-    attribute_containers = []
-    package_path = '/'.join(package)
-    for _, name, is_package in pkgutil.iter_modules(path=[package_path]):
-      if package_path == 'plaso/containers' and name in ('errors', 'events'):
-        continue
+        Returns:
+          str: event data schema.
+        """
+        lines = []
 
-      sub_package = list(package)
-      sub_package.append(name)
-      if is_package:
-        sub_containers = self._GetAttributeContainersFromPackage(sub_package)
-        attribute_containers.extend(sub_containers)
-      else:
-        module_path = '.'.join(sub_package)
-        module_object = importlib.import_module(module_path)
-        for _, cls in inspect.getmembers(module_object, inspect.isclass):
-          if issubclass(cls, events.EventData):
-            attribute_containers.append(cls)
+        for cls in sorted(attribute_containers, key=lambda cls: cls.DATA_TYPE):
+            try:
+                event_data = cls()
+            except TypeError:
+                logging.warning(f"Unable to inspect data type: {cls.DATA_TYPE:s}")
+                continue
 
-    return attribute_containers
+            lines.append(f"{event_data.data_type:s}")
+            for name in sorted(event_data.GetAttributeNames()):
+                if name and name[0] != "_":
+                    lines.append(f"  {name:s}")
+            lines.append("")
 
-  def GetAttributeContainers(self):
-    """Retrieves event data attribute containers from Plaso.
+        return "\n".join(lines)
 
-    Returns:
-      list[plaso.EventData]: event data attribute containers.
-    """
-    return self._GetAttributeContainersFromPackage(['plaso'])
+    def GetAttributeContainers(self):
+        """Retrieves event data attribute containers from Plaso.
+
+        Returns:
+          list[class]: event data attribute container classes.
+        """
+        return self._GetClassesFromPackage(["plaso"], events.EventData)
 
 
 def Main():
-  """The main program function.
+    """The main program function.
 
-  Returns:
-    bool: True if successful or False if not.
-  """
-  argument_parser = argparse.ArgumentParser(description=(
-      'Extract the event data schema from Plaso.'))
+    Returns:
+      int: exit code that is provided to sys.exit().
+    """
+    argument_parser = argparse.ArgumentParser(
+        description=("Extract the event data schema from Plaso.")
+    )
+    argument_parser.parse_args()
 
-  argument_parser.parse_args()
+    extractor = EventDataAttributeContainersSchemaExtractor()
 
-  extractor = EventDataAttributeContainersSchemaExtractor()
+    attribute_containers = extractor.GetAttributeContainers()
+    if not attribute_containers:
+        print("Unable to determine event data attribute containers")
+        return 1
 
-  attribute_containers = extractor.GetAttributeContainers()
-  if not attribute_containers:
-    print('Unable to determine event data attribute containers')
-    return False
+    schema = extractor.FormatSchema(attribute_containers)
+    print(schema)
 
-  schema = extractor.FormatSchema(attribute_containers)
-  print(schema)
-
-  return True
+    return 0
 
 
-if __name__ == '__main__':
-  if not Main():
-    sys.exit(1)
-  else:
-    sys.exit(0)
+if __name__ == "__main__":
+    sys.exit(Main())

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Test for the null output module."""
 
 import os
@@ -17,63 +16,76 @@ from tests.output import test_lib
 
 
 class NullOutputModuleTest(test_lib.OutputModuleTestCase):
-  """Test the null output module."""
+    """Test the null output module."""
 
-  # pylint: disable=protected-access
+    # pylint: disable=protected-access
 
-  _OS_PATH_SPEC = path_spec_factory.Factory.NewPathSpec(
-      dfvfs_definitions.TYPE_INDICATOR_OS, location='{0:s}{1:s}'.format(
-          os.path.sep, os.path.join('cases', 'image.dd')))
+    _OS_LOCATION = os.path.join(os.path.sep, "cases", "image.dd")
 
-  _TEST_EVENTS = [
-      {'data_type': 'test:output',
-       'display_name': 'OS: /var/log/syslog.1',
-       'hostname': 'ubuntu',
-       'inode': 12345678,
-       'path_spec': path_spec_factory.Factory.NewPathSpec(
-           dfvfs_definitions.TYPE_INDICATOR_TSK, inode=15,
-           location='/var/log/syslog.1', parent=_OS_PATH_SPEC),
-       'text': (
-           'Reporter <CRON> PID: |8442| (pam_unix(cron:session): session\n '
-           'closed for user root)'),
-       'timestamp': '2012-06-27 18:17:01',
-       'timestamp_desc': definitions.TIME_DESCRIPTION_UNKNOWN,
-       'username': 'root'}]
+    _OS_PATH_SPEC = path_spec_factory.Factory.NewPathSpec(
+        dfvfs_definitions.TYPE_INDICATOR_OS, location=_OS_LOCATION
+    )
 
-  def testGetFieldValues(self):
-    """Tests the GetFieldValues function."""
-    output_mediator = self._CreateOutputMediator()
+    _TEST_EVENTS = [
+        {
+            "data_type": "test:output",
+            "display_name": "OS: /var/log/syslog.1",
+            "hostname": "ubuntu",
+            "inode": 12345678,
+            "path_spec": path_spec_factory.Factory.NewPathSpec(
+                dfvfs_definitions.TYPE_INDICATOR_TSK,
+                inode=15,
+                location="/var/log/syslog.1",
+                parent=_OS_PATH_SPEC,
+            ),
+            "text": (
+                "Reporter <CRON> PID: |8442| (pam_unix(cron:session): session\n "
+                "closed for user root)"
+            ),
+            "timestamp": "2012-06-27 18:17:01",
+            "timestamp_desc": definitions.TIME_DESCRIPTION_UNKNOWN,
+            "username": "root",
+        }
+    ]
 
-    output_module = null.NullOutputModule()
+    def testGetFieldValues(self):
+        """Tests the GetFieldValues function."""
+        output_mediator = self._CreateOutputMediator()
 
-    event, event_data, event_data_stream = (
-        containers_test_lib.CreateEventFromValues(self._TEST_EVENTS[0]))
+        output_module = null.NullOutputModule()
 
-    event_tag = events.EventTag()
-    event_tag.AddLabel('Test')
+        event, event_data, event_data_stream = (
+            containers_test_lib.CreateEventFromValues(self._TEST_EVENTS[0])
+        )
 
-    field_values = output_module.GetFieldValues(
-        output_mediator, event, event_data, event_data_stream, event_tag)
+        event_tag = events.EventTag()
+        event_tag.AddLabel("Test")
 
-    self.assertEqual(field_values, {})
+        field_values = output_module.GetFieldValues(
+            output_mediator, event, event_data, event_data_stream, event_tag
+        )
 
-  def testWriteFieldValues(self):
-    """Tests the WriteFieldValues function."""
-    output_mediator = self._CreateOutputMediator()
+        self.assertEqual(field_values, {})
 
-    output_module = null.NullOutputModule()
+    def testWriteFieldValues(self):
+        """Tests the WriteFieldValues function."""
+        output_mediator = self._CreateOutputMediator()
 
-    event, event_data, event_data_stream = (
-        containers_test_lib.CreateEventFromValues(self._TEST_EVENTS[0]))
+        output_module = null.NullOutputModule()
 
-    event_tag = events.EventTag()
-    event_tag.AddLabel('Test')
+        event, event_data, event_data_stream = (
+            containers_test_lib.CreateEventFromValues(self._TEST_EVENTS[0])
+        )
 
-    field_values = output_module.GetFieldValues(
-        output_mediator, event, event_data, event_data_stream, event_tag)
+        event_tag = events.EventTag()
+        event_tag.AddLabel("Test")
 
-    output_module.WriteFieldValues(output_mediator, field_values)
+        field_values = output_module.GetFieldValues(
+            output_mediator, event, event_data, event_data_stream, event_tag
+        )
+
+        output_module.WriteFieldValues(output_mediator, field_values)
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

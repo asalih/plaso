@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """This file imports Python modules that register CLI helpers."""
 
 from plaso.cli.helpers import analysis_plugins
@@ -7,9 +6,9 @@ from plaso.cli.helpers import artifact_definitions
 from plaso.cli.helpers import artifact_filters
 
 try:
-  from plaso.cli.helpers import bloom_analysis
+    from plaso.cli.helpers import bloom_analysis
 except ImportError:
-  pass
+    pass
 
 from plaso.cli.helpers import codepage
 from plaso.cli.helpers import data_location
@@ -32,7 +31,6 @@ from plaso.cli.helpers import status_view
 from plaso.cli.helpers import storage_format
 from plaso.cli.helpers import tagging_analysis
 from plaso.cli.helpers import temporary_directory
-from plaso.cli.helpers import viper_analysis
 from plaso.cli.helpers import virustotal_analysis
 from plaso.cli.helpers import xlsx_output
 from plaso.cli.helpers import yara_rules

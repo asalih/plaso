@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the MountPoints2 Windows Registry plugin."""
 
 import unittest
@@ -10,56 +9,61 @@ from tests.parsers.winreg_plugins import test_lib
 
 
 class MountPoints2PluginTest(test_lib.RegistryPluginTestCase):
-  """Tests for the MountPoints2 Windows Registry plugin."""
+    """Tests for the MountPoints2 Windows Registry plugin."""
 
-  def testFilters(self):
-    """Tests the FILTERS class attribute."""
-    plugin = mountpoints.MountPoints2Plugin()
+    def testFilters(self):
+        """Tests the FILTERS class attribute."""
+        plugin = mountpoints.MountPoints2Plugin()
 
-    self._AssertFiltersOnKeyPath(plugin, 'HKEY_CURRENT_USER', (
-        'Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MountPoints2'))
+        self._AssertFiltersOnKeyPath(
+            plugin,
+            "HKEY_CURRENT_USER",
+            "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MountPoints2",
+        )
+        self._AssertNotFiltersOnKeyPath(plugin, "HKEY_CURRENT_USER", "Bogus")
 
-    self._AssertNotFiltersOnKeyPath(plugin, 'HKEY_CURRENT_USER', 'Bogus')
+    def testProcess(self):
+        """Tests the Process function."""
+        test_file_entry = self._GetTestFileEntry(["regf", "NTUSER.DAT"])
+        key_path = (
+            "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\"
+            "Explorer\\MountPoints2"
+        )
+        plugin = mountpoints.MountPoints2Plugin()
 
-  def testProcess(self):
-    """Tests the Process function."""
-    test_file_entry = self._GetTestFileEntry(['NTUSER-WIN7.DAT'])
-    key_path = (
-        'HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\'
-        'Explorer\\MountPoints2')
+        storage_writer = self._ParseKeyPathWithFileEntry(
+            test_file_entry,
+            key_path,
+            plugin,
+        )
+        number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
+            "event_data"
+        )
+        self.assertEqual(number_of_event_data, 3)
 
-    win_registry = self._GetWinRegistryFromFileEntry(test_file_entry)
-    registry_key = win_registry.GetKeyByPath(key_path)
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "extraction_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-    plugin = mountpoints.MountPoints2Plugin()
-    storage_writer = self._ParseKeyWithPlugin(
-        registry_key, plugin, file_entry=test_file_entry)
+        number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
+            "recovery_warning"
+        )
+        self.assertEqual(number_of_warnings, 0)
 
-    number_of_event_data = storage_writer.GetNumberOfAttributeContainers(
-        'event_data')
-    self.assertEqual(number_of_event_data, 5)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'extraction_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    number_of_warnings = storage_writer.GetNumberOfAttributeContainers(
-        'recovery_warning')
-    self.assertEqual(number_of_warnings, 0)
-
-    expected_event_values = {
-        'data_type': 'windows:registry:mount_points2',
-        'key_path': key_path,
-        'label': 'Home Drive',
-        'last_written_time': '2011-08-23T17:10:14.9609605+00:00',
-        'name': '##controller#home#nfury',
-        'server_name': 'controller',
-        'share_name': '\\home\\nfury',
-        'type': 'Remote Drive'}
-
-    event_data = storage_writer.GetAttributeContainerByIndex('event_data', 0)
-    self.CheckEventData(event_data, expected_event_values)
+        expected_event_values = {
+            "data_type": "windows:registry:mount_points2",
+            "key_path": key_path,
+            "label": None,
+            "last_written_time": "2016-10-09T19:57:35.4892903+00:00",
+            "name": "{8bff1c84-9188-11e5-824f-806e6f6e6963}",
+            "server_name": "Drive",
+            "share_name": None,
+            "source_type": "Volume",
+        }
+        event_data = storage_writer.GetAttributeContainerByIndex("event_data", 1)
+        self.CheckEventData(event_data, expected_event_values)
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

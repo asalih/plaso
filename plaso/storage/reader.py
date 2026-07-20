@@ -1,179 +1,232 @@
-# -*- coding: utf-8 -*-
 """The storage reader."""
+
+import collections
 
 from plaso.containers import events
 from plaso.containers import sessions
 from plaso.storage import logger
 
 
-class StorageReader(object):
-  """Storage reader interface."""
+class StorageReader:
+    """Storage reader interface."""
 
-  _CONTAINER_TYPE_SESSION = sessions.Session.CONTAINER_TYPE
-  _CONTAINER_TYPE_EVENT_TAG = events.EventTag.CONTAINER_TYPE
+    _CONTAINER_TYPE_SESSION = sessions.Session.CONTAINER_TYPE
+    _CONTAINER_TYPE_EVENT_TAG = events.EventTag.CONTAINER_TYPE
 
-  def __init__(self):
-    """Initializes a storage reader."""
-    super(StorageReader, self).__init__()
-    self._serializers_profiler = None
-    self._storage_profiler = None
-    self._store = None
+    def __init__(self):
+        """Initializes a storage reader."""
+        super().__init__()
+        self._serializers_profiler = None
+        self._storage_profiler = None
+        self._store = None
 
-  def __enter__(self):
-    """Make usable with "with" statement."""
-    return self
+    def __enter__(self):
+        """Make usable with "with" statement."""
+        return self
 
-  # pylint: disable=unused-argument
-  def __exit__(self, exception_type, value, traceback):
-    """Make usable with "with" statement."""
-    self.Close()
+    # pylint: disable=unused-argument
+    def __exit__(self, exception_type, value, traceback):
+        """Make usable with "with" statement."""
+        self.Close()
 
-  def Close(self):
-    """Closes the storage reader."""
-    self._store.Close()
-    self._store = None
+    def Close(self):
+        """Closes the storage reader."""
+        self._store.Close()
+        self._store = None
 
-  def GetAttributeContainerByIdentifier(self, container_type, identifier):
-    """Retrieves a specific type of container with a specific identifier.
+    def GetAttributeContainerByIdentifier(self, container_type, identifier):
+        """Retrieves a specific type of container with a specific identifier.
 
-    Args:
-      container_type (str): container type.
-      identifier (AttributeContainerIdentifier): attribute container identifier.
+        Args:
+          container_type (str): container type.
+          identifier (AttributeContainerIdentifier): attribute container identifier.
 
-    Returns:
-      AttributeContainer: attribute container or None if not available.
-    """
-    return self._store.GetAttributeContainerByIdentifier(
-        container_type, identifier)
+        Returns:
+          AttributeContainer: attribute container or None if not available.
+        """
+        return self._store.GetAttributeContainerByIdentifier(container_type, identifier)
 
-  def GetAttributeContainerByIndex(self, container_type, index):
-    """Retrieves a specific attribute container.
+    def GetAttributeContainerByIndex(self, container_type, index):
+        """Retrieves a specific attribute container.
 
-    Args:
-      container_type (str): attribute container type.
-      index (int): attribute container index.
+        Args:
+          container_type (str): attribute container type.
+          index (int): attribute container index.
 
-    Returns:
-      AttributeContainer: attribute container or None if not available.
-    """
-    return self._store.GetAttributeContainerByIndex(container_type, index)
+        Returns:
+          AttributeContainer: attribute container or None if not available.
+        """
+        return self._store.GetAttributeContainerByIndex(container_type, index)
 
-  def GetAttributeContainers(self, container_type, filter_expression=None):
-    """Retrieves a specific type of attribute containers.
+    def GetAttributeContainers(self, container_type, filter_expression=None):
+        """Retrieves a specific type of attribute containers.
 
-    Args:
-      container_type (str): attribute container type.
-      filter_expression (Optional[str]): expression to filter the resulting
-          attribute containers by.
+        Args:
+          container_type (str): attribute container type.
+          filter_expression (Optional[str]): expression to filter the resulting
+              attribute containers by.
 
-    Returns:
-      generator(AttributeContainers): attribute container generator.
-    """
-    return self._store.GetAttributeContainers(
-        container_type, filter_expression=filter_expression)
+        Returns:
+          generator(AttributeContainers): attribute container generator.
+        """
+        return self._store.GetAttributeContainers(
+            container_type, filter_expression=filter_expression
+        )
 
-  def GetEventTagByEventIdentifer(self, event_identifier):
-    """Retrieves the event tag of a specific event.
+    def GetDataTypesCounter(self):
+        """Retrieves the data types counter.
 
-    Args:
-      event_identifier (AttributeContainerIdentifier): event attribute
-          container identifier.
+        Returns:
+          collections.Counter: Data types counter.
+        """
+        if not self.HasAttributeContainers("data_type_count"):
+            data_type_dict = {}
+        else:
+            data_type_dict = {
+                data_type_count.name: data_type_count
+                for data_type_count in self.GetAttributeContainers("data_type_count")
+            }
 
-    Returns:
-      EventTag: event tag or None if the event has no event tag.
-    """
-    lookup_key = event_identifier.CopyToString()
+        return collections.Counter(data_type_dict)
 
-    event_tags = list(self.GetAttributeContainers(
-        self._CONTAINER_TYPE_EVENT_TAG,
-        filter_expression=f'_event_identifier == "{lookup_key:s}"'))
+    def GetEventLabelsCounter(self):
+        """Retrieves the event labels counter.
 
-    if not event_tags:
-      return None
+        Returns:
+          collections.Counter: Data types counter.
+        """
+        if not self.HasAttributeContainers("event_label_count"):
+            event_labels_dict = {}
+        else:
+            event_labels_dict = {
+                event_label_count.label: event_label_count
+                for event_label_count in self.GetAttributeContainers(
+                    "event_label_count"
+                )
+            }
 
-    if len(event_tags) > 1:
-      logger.warning('More than 1 event tag returned.')
+        return collections.Counter(event_labels_dict)
 
-    return event_tags[0]
+    def GetEventTagByEventIdentifer(self, event_identifier):
+        """Retrieves the event tag of a specific event.
 
-  def GetFormatVersion(self):
-    """Retrieves the format version of the underlying storage file.
+        Args:
+          event_identifier (AttributeContainerIdentifier): event attribute
+              container identifier.
 
-    Returns:
-      int: the format version.
-    """
-    return self._store.format_version
+        Returns:
+          EventTag: event tag or None if the event has no event tag.
+        """
+        lookup_key = event_identifier.CopyToString()
 
-  def GetNumberOfAttributeContainers(self, container_type):
-    """Retrieves the number of a specific type of attribute containers.
+        event_tags = list(
+            self.GetAttributeContainers(
+                self._CONTAINER_TYPE_EVENT_TAG,
+                filter_expression=f'_event_identifier == "{lookup_key:s}"',
+            )
+        )
+        if not event_tags:
+            return None
 
-    Args:
-      container_type (str): attribute container type.
+        if len(event_tags) > 1:
+            logger.warning("More than 1 event tag returned.")
 
-    Returns:
-      int: the number of containers of a specified type.
-    """
-    return self._store.GetNumberOfAttributeContainers(container_type)
+        return event_tags[0]
 
-  def GetSerializationFormat(self):
-    """Retrieves the serialization format of the underlying storage file.
+    def GetFormatVersion(self):
+        """Retrieves the format version of the underlying storage file.
 
-    Returns:
-      str: the serialization format.
-    """
-    return self._store.serialization_format
+        Returns:
+          int: the format version.
+        """
+        return self._store.format_version
 
-  def GetSessions(self):
-    """Retrieves the sessions.
+    def GetNumberOfAttributeContainers(self, container_type):
+        """Retrieves the number of a specific type of attribute containers.
 
-    Yields:
-      Session: session attribute container.
-    """
-    yield from self.GetAttributeContainers(self._CONTAINER_TYPE_SESSION)
+        Args:
+          container_type (str): attribute container type.
 
-  def GetSortedEvents(self, time_range=None):
-    """Retrieves the events in increasing chronological order.
+        Returns:
+          int: the number of containers of a specified type.
+        """
+        return self._store.GetNumberOfAttributeContainers(container_type)
 
-    This includes all events written to the storage including those pending
-    being flushed (written) to the storage.
+    def GetParsersCounter(self):
+        """Retrieves the parsers counter.
 
-    Args:
-      time_range (Optional[TimeRange]): time range used to filter events
-          that fall in a specific period.
+        Returns:
+          collections.Counter: Parsers counter.
+        """
+        if not self.HasAttributeContainers("parser_count"):
+            parser_dict = {}
+        else:
+            parser_dict = {
+                parser_count.name: parser_count
+                for parser_count in self.GetAttributeContainers("parser_count")
+            }
 
-    Returns:
-      generator(EventObject): event generator.
-    """
-    return self._store.GetSortedEvents(time_range=time_range)
+        return collections.Counter(parser_dict)
 
-  def HasAttributeContainers(self, container_type):
-    """Determines if a store contains a specific type of attribute container.
+    def GetSerializationFormat(self):
+        """Retrieves the serialization format of the underlying storage file.
 
-    Args:
-      container_type (str): attribute container type.
+        Returns:
+          str: the serialization format.
+        """
+        return self._store.serialization_format
 
-    Returns:
-      bool: True if the store contains the specified type of attribute
-          containers.
-    """
-    return self._store.HasAttributeContainers(container_type)
+    def GetSessions(self):
+        """Retrieves the sessions.
 
-  def SetSerializersProfiler(self, serializers_profiler):
-    """Sets the serializers profiler.
+        Yields:
+          Session: session attribute container.
+        """
+        yield from self.GetAttributeContainers(self._CONTAINER_TYPE_SESSION)
 
-    Args:
-      serializers_profiler (SerializersProfiler): serializers profiler.
-    """
-    self._serializers_profiler = serializers_profiler
-    if self._store:
-      self._store.SetSerializersProfiler(serializers_profiler)
+    def GetSortedEvents(self, time_range=None):
+        """Retrieves the events in increasing chronological order.
 
-  def SetStorageProfiler(self, storage_profiler):
-    """Sets the storage profiler.
+        This includes all events written to the storage including those pending
+        being flushed (written) to the storage.
 
-    Args:
-      storage_profiler (StorageProfiler): storage profiler.
-    """
-    self._storage_profiler = storage_profiler
-    if self._store:
-      self._store.SetStorageProfiler(storage_profiler)
+        Args:
+          time_range (Optional[TimeRange]): time range used to filter events
+              that fall in a specific period.
+
+        Returns:
+          generator(EventObject): event generator.
+        """
+        return self._store.GetSortedEvents(time_range=time_range)
+
+    def HasAttributeContainers(self, container_type):
+        """Determines if a store contains a specific type of attribute container.
+
+        Args:
+          container_type (str): attribute container type.
+
+        Returns:
+          bool: True if the store contains the specified type of attribute
+              containers.
+        """
+        return self._store.HasAttributeContainers(container_type)
+
+    def SetSerializersProfiler(self, serializers_profiler):
+        """Sets the serializers profiler.
+
+        Args:
+          serializers_profiler (SerializersProfiler): serializers profiler.
+        """
+        self._serializers_profiler = serializers_profiler
+        if self._store:
+            self._store.SetSerializersProfiler(serializers_profiler)
+
+    def SetStorageProfiler(self, storage_profiler):
+        """Sets the storage profiler.
+
+        Args:
+          storage_profiler (StorageProfiler): storage profiler.
+        """
+        self._storage_profiler = storage_profiler
+        if self._store:
+            self._store.SetStorageProfiler(storage_profiler)

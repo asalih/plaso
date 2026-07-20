@@ -3,7 +3,7 @@
 ## Git
 To download the latest version of Plaso you'll need to install the git tools:
 ```
-sudo apt-get install git
+sudo apt install git
 ```
 
 Checkout the Plaso source from the git repo:
@@ -25,7 +25,7 @@ python utils/check_dependencies.py
 
 **Note that some dependencies are actively under development and can be
 frequently updated, therefore we recommend checking the status of the
- dependencies regularly.**
+dependencies regularly.**
 
 ## Updating your environment.
 
@@ -52,14 +52,4 @@ to do unattended bulk builds.
 If you intend to do development on Plaso you'll also need to install some
 development tools:
 
-* PyLint
-* Python Mock
-
-### PyLint
-Currently plaso development uses PyLint version 2.6.x.
-
-### Python Mock
-To install Python Mock run:
-```bash
-sudo apt-get install python-mock
-```
+* PyLint 3.2.x

@@ -47,7 +47,6 @@ PYTHON3_DEPENDENCIES="libbde-python3
                       python3-artifacts
                       python3-bencode
                       python3-certifi
-                      python3-cffi
                       python3-chardet
                       python3-dateutil
                       python3-defusedxml
@@ -56,7 +55,6 @@ PYTHON3_DEPENDENCIES="libbde-python3
                       python3-dfwinreg
                       python3-dtfabric
                       python3-flor
-                      python3-idna
                       python3-lz4
                       python3-opensearch
                       python3-pefile
@@ -67,7 +65,6 @@ PYTHON3_DEPENDENCIES="libbde-python3
                       python3-pyyaml
                       python3-redis
                       python3-requests
-                      python3-six
                       python3-urllib3
                       python3-xattr
                       python3-xlsxwriter
@@ -77,7 +74,6 @@ PYTHON3_DEPENDENCIES="libbde-python3
 
 # Additional dependencies for running tests, alphabetized, one per line.
 TEST_DEPENDENCIES="python3-fakeredis
-                   python3-mock
                    python3-setuptools";
 
 # Additional dependencies for development, alphabetized, one per line.

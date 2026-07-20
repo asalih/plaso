@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the OpenSearch output module CLI arguments helper."""
 
-import argparse
 import sys
 import unittest
 
@@ -15,16 +13,15 @@ from tests.cli import test_lib as cli_test_lib
 from tests.cli.helpers import test_lib
 
 
-class OpenSearchOutputArgumentsHelperTest(
-    test_lib.OutputModuleArgumentsHelperTest):
-  """Tests the OpenSearch output module CLI arguments helper."""
+class OpenSearchOutputArgumentsHelperTest(test_lib.OutputModuleArgumentsHelperTest):
+    """Tests the OpenSearch output module CLI arguments helper."""
 
-  # pylint: disable=no-member,protected-access
+    # pylint: disable=no-member,protected-access
 
-  _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
+    _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
 
-  if _PYTHON3_13_OR_LATER:
-    _EXPECTED_OUTPUT = """\
+    if _PYTHON3_13_OR_LATER:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--index_name NAME] [--flush_interval INTERVAL]
                      [--opensearch-server HOSTNAME] [--opensearch-port PORT]
                      [--opensearch-user USERNAME]
@@ -35,7 +32,7 @@ usage: cli_helper.py [--index_name NAME] [--flush_interval INTERVAL]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --ca_certificates_file_path, --ca-certificates-file-path PATH
                         Path to a file containing a list of root certificates
                         to trust.
@@ -61,10 +58,10 @@ Test argument parser.
   --opensearch-user, --opensearch_user USERNAME
                         Username to use for OpenSearch authentication.
   --use_ssl, --use-ssl  Enforces use of SSL/TLS.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  else:
-    _EXPECTED_OUTPUT = """\
+    else:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--index_name NAME] [--flush_interval INTERVAL]
                      [--opensearch-server HOSTNAME] [--opensearch-port PORT]
                      [--opensearch-user USERNAME]
@@ -75,7 +72,7 @@ usage: cli_helper.py [--index_name NAME] [--flush_interval INTERVAL]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --ca_certificates_file_path PATH, --ca-certificates-file-path PATH
                         Path to a file containing a list of root certificates
                         to trust.
@@ -101,34 +98,32 @@ Test argument parser.
   --opensearch-user USERNAME, --opensearch_user USERNAME
                         Username to use for OpenSearch authentication.
   --use_ssl, --use-ssl  Enforces use of SSL/TLS.
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  def testAddArguments(self):
-    """Tests the AddArguments function."""
-    argument_parser = argparse.ArgumentParser(
-        prog='cli_helper.py',
-        description='Test argument parser.', add_help=False,
-        formatter_class=cli_test_lib.SortedArgumentsHelpFormatter)
+    def testAddArguments(self):
+        """Tests the AddArguments function."""
+        argument_parser = self._GetTestArgumentParser("cli_helper.py")
 
-    opensearch_output.OpenSearchOutputArgumentsHelper.AddArguments(
-        argument_parser)
+        opensearch_output.OpenSearchOutputArgumentsHelper.AddArguments(argument_parser)
 
-    output = self._RunArgparseFormatHelp(argument_parser)
-    self.assertEqual(output, self._EXPECTED_OUTPUT)
+        output = self._RunArgparseFormatHelp(argument_parser)
+        self.assertEqual(output, self._EXPECTED_OUTPUT)
 
-  def testParseOptions(self):
-    """Tests the ParseOptions function."""
-    options = cli_test_lib.TestOptions()
-    options._data_location = shared_test_lib.DATA_PATH
+    def testParseOptions(self):
+        """Tests the ParseOptions function."""
+        options = cli_test_lib.TestOptions()
+        options._data_location = shared_test_lib.DATA_PATH
 
-    output_module = opensearch.OpenSearchOutputModule()
-    opensearch_output.OpenSearchOutputArgumentsHelper.ParseOptions(
-        options, output_module)
+        output_module = opensearch.OpenSearchOutputModule()
+        opensearch_output.OpenSearchOutputArgumentsHelper.ParseOptions(
+            options, output_module
+        )
 
-    with self.assertRaises(errors.BadConfigObject):
-      opensearch_output.OpenSearchOutputArgumentsHelper.ParseOptions(
-          options, None)
+        with self.assertRaises(errors.BadConfigObject):
+            opensearch_output.OpenSearchOutputArgumentsHelper.ParseOptions(
+                options, None
+            )
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

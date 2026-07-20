@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Tests for the profiling CLI arguments helper."""
 
-import argparse
 import sys
 import unittest
 
@@ -15,21 +13,21 @@ from tests.cli import test_lib as cli_test_lib
 
 
 class ProfilingArgumentsHelperTest(cli_test_lib.CLIToolTestCase):
-  """Tests for the profiling CLI arguments helper."""
+    """Tests for the profiling CLI arguments helper."""
 
-  # pylint: disable=protected-access
+    # pylint: disable=protected-access
 
-  _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
+    _PYTHON3_13_OR_LATER = sys.version_info[0:2] >= (3, 13)
 
-  if _PYTHON3_13_OR_LATER:
-    _EXPECTED_OUTPUT = """\
+    if _PYTHON3_13_OR_LATER:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--profilers PROFILERS_LIST]
                      [--profiling_directory DIRECTORY]
                      [--profiling_sample_rate SAMPLE_RATE]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --profilers PROFILERS_LIST
                         List of profilers to use by the tool. This is a comma
                         separated list where each entry is the name of a
@@ -42,17 +40,17 @@ Test argument parser.
   --profiling_sample_rate, --profiling-sample-rate SAMPLE_RATE
                         Profiling sample rate (defaults to a sample every 1000
                         files).
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  else:
-    _EXPECTED_OUTPUT = """\
+    else:
+        _EXPECTED_OUTPUT = f"""\
 usage: cli_helper.py [--profilers PROFILERS_LIST]
                      [--profiling_directory DIRECTORY]
                      [--profiling_sample_rate SAMPLE_RATE]
 
 Test argument parser.
 
-{0:s}:
+{cli_test_lib.ARGPARSE_OPTIONS:s}:
   --profilers PROFILERS_LIST
                         List of profilers to use by the tool. This is a comma
                         separated list where each entry is the name of a
@@ -65,71 +63,68 @@ Test argument parser.
   --profiling_sample_rate SAMPLE_RATE, --profiling-sample-rate SAMPLE_RATE
                         Profiling sample rate (defaults to a sample every 1000
                         files).
-""".format(cli_test_lib.ARGPARSE_OPTIONS)
+"""
 
-  def testAddArguments(self):
-    """Tests the AddArguments function."""
-    argument_parser = argparse.ArgumentParser(
-        prog='cli_helper.py', description='Test argument parser.',
-        add_help=False,
-        formatter_class=cli_test_lib.SortedArgumentsHelpFormatter)
+    def testAddArguments(self):
+        """Tests the AddArguments function."""
+        argument_parser = self._GetTestArgumentParser("cli_helper.py")
 
-    profiling.ProfilingArgumentsHelper.AddArguments(argument_parser)
+        profiling.ProfilingArgumentsHelper.AddArguments(argument_parser)
 
-    output = self._RunArgparseFormatHelp(argument_parser)
-    self.assertEqual(output, self._EXPECTED_OUTPUT)
+        output = self._RunArgparseFormatHelp(argument_parser)
+        self.assertEqual(output, self._EXPECTED_OUTPUT)
 
-  def testParseOptions(self):
-    """Tests the ParseOptions function."""
-    # pylint: disable=no-member
+    def testParseOptions(self):
+        """Tests the ParseOptions function."""
+        # pylint: disable=no-member
 
-    test_tool = tools.CLITool()
+        test_tool = tools.CLITool()
 
-    options = cli_test_lib.TestOptions()
-    options.profiling_sample_rate = '100'
+        options = cli_test_lib.TestOptions()
+        options.profiling_sample_rate = "100"
 
-    profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
-    self.assertEqual(test_tool._profiling_sample_rate, 100)
+        profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
+        self.assertEqual(test_tool._profiling_sample_rate, 100)
 
-    with shared_test_lib.TempDirectory() as temp_directory:
-      options = cli_test_lib.TestOptions()
-      options.profilers = 'processing'
-      options.profiling_directory = temp_directory
+        with shared_test_lib.TempDirectory() as temp_directory:
+            options = cli_test_lib.TestOptions()
+            options.profilers = "processing"
+            options.profiling_directory = temp_directory
 
-      profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
-      self.assertEqual(test_tool._profilers, set(['processing']))
-      self.assertEqual(test_tool._profiling_directory, temp_directory)
-      self.assertEqual(test_tool._profiling_sample_rate, 1000)
+            profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
+            self.assertEqual(test_tool._profilers, set(["processing"]))
+            self.assertEqual(test_tool._profiling_directory, temp_directory)
+            self.assertEqual(test_tool._profiling_sample_rate, 1000)
 
-    with self.assertRaises(errors.BadConfigObject):
-      options = cli_test_lib.TestOptions()
+        with self.assertRaises(errors.BadConfigObject):
+            options = cli_test_lib.TestOptions()
 
-      profiling.ProfilingArgumentsHelper.ParseOptions(options, None)
+            profiling.ProfilingArgumentsHelper.ParseOptions(options, None)
 
-    with self.assertRaises(errors.BadConfigOption):
-      options = cli_test_lib.TestOptions()
-      options.profilers = 'bogus'
+        with self.assertRaises(errors.BadConfigOption):
+            options = cli_test_lib.TestOptions()
+            options.profilers = "bogus"
 
-      profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
+            profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
 
-    with self.assertRaises(errors.BadConfigOption):
-      options = cli_test_lib.TestOptions()
-      options.profiling_directory = '/bogus'
+        with self.assertRaises(errors.BadConfigOption):
+            options = cli_test_lib.TestOptions()
+            options.profiling_directory = "/bogus"
 
-      profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
+            profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
 
-    with self.assertRaises(errors.BadConfigOption):
-      options = cli_test_lib.TestOptions()
-      options.profiling_sample_rate = 'a'
+        with self.assertRaises(errors.BadConfigOption):
+            options = cli_test_lib.TestOptions()
+            options.profiling_sample_rate = "a"
 
-      profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
+            profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
 
-    with self.assertRaises(errors.BadConfigOption):
-      options = cli_test_lib.TestOptions()
-      options.profiling_sample_rate = 100
+        with self.assertRaises(errors.BadConfigOption):
+            options = cli_test_lib.TestOptions()
+            options.profiling_sample_rate = 100
 
-      profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
+            profiling.ProfilingArgumentsHelper.ParseOptions(options, test_tool)
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

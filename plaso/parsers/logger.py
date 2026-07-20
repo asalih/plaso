@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """The parsers sub module logger."""
 
 import logging
 
-
-_logger = logging.getLogger('parsers')
+_logger = logging.getLogger("parsers")
 
 # Mimic the logging module interface.
 critical = _logger.critical

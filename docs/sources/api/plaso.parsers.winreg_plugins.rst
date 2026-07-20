@@ -52,6 +52,14 @@ plaso.parsers.winreg\_plugins.default module
    :show-inheritance:
    :undoc-members:
 
+plaso.parsers.winreg\_plugins.diagnosed\_applications module
+------------------------------------------------------------
+
+.. automodule:: plaso.parsers.winreg_plugins.diagnosed_applications
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 plaso.parsers.winreg\_plugins.interface module
 ----------------------------------------------
 
@@ -208,6 +216,14 @@ plaso.parsers.winreg\_plugins.typedurls module
 ----------------------------------------------
 
 .. automodule:: plaso.parsers.winreg_plugins.typedurls
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+plaso.parsers.winreg\_plugins.typedurlstime module
+--------------------------------------------------
+
+.. automodule:: plaso.parsers.winreg_plugins.typedurlstime
    :members:
    :show-inheritance:
    :undoc-members:

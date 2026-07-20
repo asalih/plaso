@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """The cli sub module logger."""
 
 import logging
 
-
-_logger = logging.getLogger('cli')
+_logger = logging.getLogger("cli")
 
 # Mimic the logging module interface.
 critical = _logger.critical
