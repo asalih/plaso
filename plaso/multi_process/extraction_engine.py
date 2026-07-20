@@ -46,6 +46,14 @@ class _EventSourceHeap(object):
     self._heap = []
     self._maximum_number_of_items = maximum_number_of_items
 
+  def IsEmpty(self):
+    """Determines if the heap is empty.
+
+    Returns:
+      bool: True if the heap is empty, False otherwise.
+    """
+    return not self._heap
+
   def IsFull(self):
     """Determines if the heap is full.
 
@@ -102,6 +110,12 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
 
   # Maximum number of concurrent tasks.
   _MAXIMUM_NUMBER_OF_TASKS = 10000
+
+  # Maximum time to keep merging pending task storages within a single
+  # scheduler pass when there is nothing to schedule. Bounds the extra
+  # scheduling latency drain mode can introduce for newly discovered
+  # event sources.
+  _MAXIMUM_MERGE_DRAIN_TIME_SECONDS = 0.5
 
   _SCHEDULER_IDLE_SLEEP_SECONDS = 0.01
 
@@ -526,18 +540,23 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
 
     return number_of_containers
 
-  def _MergeTaskStorage(self, storage_writer, session_identifier):
+  def _MergeTaskStorage(self, storage_writer, session_identifier, drain=False):
     """Merges a task storage with the session storage.
 
     This function checks all task stores that are ready to merge and updates
     the scheduled tasks. Note that to prevent this function holding up
-    the task scheduling loop only the first available task storage is merged.
+    the task scheduling loop only the first available task storage is merged,
+    unless drain is set.
 
     Args:
       storage_writer (StorageWriter): storage writer for a session storage used
           to merge task storage.
       session_identifier (str): the identifier of the session the tasks are
           part of.
+      drain (Optional[bool]): True if the merge should keep consuming pending
+          task storages until a time budget is exhausted. Used when there are
+          no event sources left to schedule and workers are idle, so merge
+          throughput is not capped at one task per scheduler pass.
     """
     if self._processing_profiler:
       self._processing_profiler.StartTiming('merge_check')
@@ -571,11 +590,18 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
     if self._processing_profiler:
       self._processing_profiler.StopTiming('merge_check')
 
-    task = None
-    if not self._task_merge_helper_on_hold:
-      task = self._task_manager.GetTaskPendingMerge(self._merge_task)
+    merge_deadline = None
+    if drain:
+      merge_deadline = time.time() + self._MAXIMUM_MERGE_DRAIN_TIME_SECONDS
 
-    if task or self._task_merge_helper:
+    while not self._abort:
+      task = None
+      if not self._task_merge_helper_on_hold:
+        task = self._task_manager.GetTaskPendingMerge(self._merge_task)
+
+      if not task and not self._task_merge_helper:
+        break
+
       if self._processing_profiler:
         self._processing_profiler.StartTiming('merge')
 
@@ -663,6 +689,38 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
 
           self._task_manager.SampleTaskStatus(self._merge_task, 'merge_resumed')
 
+      if merge_deadline is None or time.time() >= merge_deadline:
+        break
+
+  def _ShouldDrainMergeBacklog(self, task, event_source, event_source_heap):
+    """Determines if the merge backlog should be drained this pass.
+
+    Draining merges multiple pending task storages per scheduler pass
+    instead of one. This is done when there is nothing left to schedule,
+    or when no worker is processing a task while a merge backlog exists,
+    which otherwise serializes the pipeline at one merge per scheduler
+    pass since every merge can discover new event sources that keep the
+    heap non-empty. The drain loop stops as soon as the backlog is empty,
+    so draining a small backlog costs no more than the merges themselves.
+
+    Args:
+      task (Task): task that still needs to be scheduled or None.
+      event_source (EventSource): event source waiting to be scheduled
+          or None.
+      event_source_heap (_EventSourceHeap): event source heap.
+
+    Returns:
+      bool: True if pending task storages should be merged in batches.
+    """
+    if task is None and event_source is None and event_source_heap.IsEmpty():
+      return True
+
+    tasks_status = self._task_manager.GetStatusInformation()
+    if tasks_status.number_of_tasks_processing:
+      return False
+
+    return tasks_status.number_of_tasks_pending_merge > 0
+
   def _ProduceExtractionWarning(self, storage_writer, message, path_spec):
     """Produces an extraction warning.
 
@@ -737,7 +795,10 @@ class ExtractionMultiProcessEngine(task_engine.TaskMultiProcessEngine):
 
             task = None
 
-        self._MergeTaskStorage(storage_writer, session_identifier)
+        drain = self._ShouldDrainMergeBacklog(
+            task, event_source, event_source_heap)
+
+        self._MergeTaskStorage(storage_writer, session_identifier, drain=drain)
 
         if event_source_heap.IsFull():
           logger.debug('Event source heap is full.')
